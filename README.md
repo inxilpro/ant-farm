@@ -19,7 +19,8 @@ terminal: pick hosts, pick tags, choose check or live mode, and run.
    `--ask-become-pass`) in the field below the tags.
 4. **Toolbar:** choose the playbook and Check or Live mode, then Run (⌘R).
 5. **Terminal pane:** shows the command and the run. It is a real terminal, so
-   password prompts work. Stop (⌘.) sends Ctrl-C.
+   password prompts work. Stop (⌘.) interrupts the run and lets Ansible
+   clean up. Ctrl-C or ⌥⌘. kills it at once.
 
 Live runs ask for confirmation first. You can turn that off in Settings.
 
@@ -51,14 +52,15 @@ re-runs a past command in check or live mode or restores its selections.
 | Open folder | ⌘O |
 | Run | ⌘R |
 | Run in check mode | ⌥⌘R |
-| Stop / force stop | ⌘. / ⌥⌘. |
+| Stop / force stop | ⌘. / ⌃C or ⌥⌘. |
 | Check mode / live mode | ⌘1 / ⌘2 |
 | Clear terminal | ⌘K |
 | Reload | ⇧⌘R |
 
 ## Development
 
-Open `Ant Farm.xcodeproj` in Xcode 27. The first build asks you to trust
+Open `Ant Farm.xcodeproj` in Xcode 27. The app icon is `Ant Farm/AntFarmIcon.icon`; edit it
+in Icon Composer. The first build asks you to trust
 SwiftTerm's build plugin. CI (`.github/workflows/ci.yml`) builds and runs the
 unit tests on every push to `main`. `Documentation/RELEASING.md` covers
 releases, and `Documentation/ROADMAP.md` lists planned work.

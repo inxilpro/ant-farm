@@ -36,6 +36,23 @@ final class TerminalController {
     }()
 
     @ObservationIgnored private var stopRequested = false
+    @ObservationIgnored private var keyMonitor: Any?
+
+    init() {
+        // Ctrl-C force stops a run, wherever focus is (including the terminal itself).
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self, self.isRunning, Self.isControlC(event) else { return event }
+                self.forceStop()
+                return nil
+            }
+        }
+    }
+
+    private static func isControlC(_ event: NSEvent) -> Bool {
+        event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .control
+            && event.charactersIgnoringModifiers?.lowercased() == "c"
+    }
 
     func run(argv: [String], executable: URL, environment: [String: String], directory: URL, mode: RunMode) {
         guard !isRunning else { return }
@@ -69,7 +86,7 @@ final class TerminalController {
         view.send([0x03])
     }
 
-    /// Kills the run's process group when it ignores Stop.
+    /// Kills the run's process group (Ctrl-C or ⌥⌘.).
     func forceStop() {
         guard isRunning else { return }
         stopRequested = true

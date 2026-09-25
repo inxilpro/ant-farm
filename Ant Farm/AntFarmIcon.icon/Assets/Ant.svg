@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g fill="none" stroke="#2B1B12" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antennae -->
+    <path d="M470 300 C440 230 400 200 350 190"/>
+    <path d="M554 300 C584 230 624 200 674 190"/>
+    <!-- legs -->
+    <path d="M470 470 L360 420 L300 360"/>
+    <path d="M554 470 L664 420 L724 360"/>
+    <path d="M465 520 L340 530 L270 580"/>
+    <path d="M559 520 L684 530 L754 580"/>
+    <path d="M475 565 L380 640 L350 730"/>
+    <path d="M549 565 L644 640 L674 730"/>
+  </g>
+  <g fill="#2B1B12">
+    <ellipse cx="512" cy="340" rx="78" ry="70"/>
+    <ellipse cx="512" cy="495" rx="58" ry="95"/>
+    <ellipse cx="512" cy="705" rx="118" ry="150"/>
+  </g>
+</svg>
