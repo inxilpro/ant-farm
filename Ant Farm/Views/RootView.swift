@@ -22,7 +22,8 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 500)
         .task {
-            guard !started else { return }
+            // Unit tests are hosted in the app; a modal open panel would stall them.
+            guard !started, !AppDefaults.isRunningTests else { return }
             started = true
             let opened = await app.start()
             // First launch: go straight to the folder picker.

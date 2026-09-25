@@ -27,6 +27,10 @@ enum AppDefaults {
         ])
     }
 
+    static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     static var recentDirectories: [String] {
         get { UserDefaults.standard.stringArray(forKey: SettingsKey.recentDirectories) ?? [] }
         set { UserDefaults.standard.set(Array(newValue.prefix(10)), forKey: SettingsKey.recentDirectories) }
