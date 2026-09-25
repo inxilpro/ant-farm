@@ -1,0 +1,55 @@
+# CI: builds Ant Farm and runs its unit tests on every push to main.
+#
+# Runner image / Xcode: matches release.yml. `xcode-27` is GitHub's preview
+# image for Xcode 27; move to `macos-27` once it is GA, and bump `runs-on` and
+# XCODE_APP together.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_APP: /Applications/Xcode_27.0.app
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: xcode-27
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Build and run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "Ant Farm.xcodeproj" \
+            -scheme "Ant Farm" \
+            -destination 'platform=macOS' \
+            -only-testing:"Ant FarmTests" \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      # Package.resolved is committed; flag drift so it gets updated.
+      - name: Check Package.resolved
+        if: always()
+        run: |
+          RESOLVED="Ant Farm.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          if [[ -n "$(git status --porcelain -- "$RESOLVED")" ]]; then
+            echo "::warning::Package.resolved differs from the committed copy"
+            cat "$RESOLVED"
+          fi
