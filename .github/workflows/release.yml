@@ -91,6 +91,7 @@ jobs:
             -destination 'platform=macOS' \
             -only-testing:"Ant FarmTests" \
             -derivedDataPath DerivedData \
+            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
@@ -141,6 +142,7 @@ jobs:
             -destination 'generic/platform=macOS' \
             -archivePath "$RUNNER_TEMP/$ASSET_BASENAME.xcarchive" \
             -derivedDataPath DerivedData \
+            -skipPackagePluginValidation \
             MARKETING_VERSION="$VERSION" \
             CURRENT_PROJECT_VERSION="$VERSION" \
             CODE_SIGN_STYLE=Manual \

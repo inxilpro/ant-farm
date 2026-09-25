@@ -40,6 +40,7 @@ jobs:
             -destination 'platform=macOS' \
             -only-testing:"Ant FarmTests" \
             -derivedDataPath DerivedData \
+            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
