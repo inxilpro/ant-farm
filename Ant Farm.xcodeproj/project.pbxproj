@@ -1,0 +1,549 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		6B22168B306725B500324D0D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6B221675306725B400324D0D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6B22167C306725B400324D0D;
+			remoteInfo = "Ant Farm";
+		};
+		6B221695306725B500324D0D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6B221675306725B400324D0D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6B22167C306725B400324D0D;
+			remoteInfo = "Ant Farm";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		6B22167D306725B400324D0D /* Ant Farm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ant Farm.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B22168A306725B500324D0D /* Ant FarmTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Ant FarmTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B221694306725B500324D0D /* Ant FarmUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Ant FarmUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		6B22167F306725B400324D0D /* Ant Farm */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Ant Farm";
+			sourceTree = "<group>";
+		};
+		6B22168D306725B500324D0D /* Ant FarmTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Ant FarmTests";
+			sourceTree = "<group>";
+		};
+		6B221697306725B500324D0D /* Ant FarmUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Ant FarmUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6B22167A306725B400324D0D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		6B221687306725B500324D0D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		6B221691306725B500324D0D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		6B221674306725B400324D0D = {
+			isa = PBXGroup;
+			children = (
+				6B22167F306725B400324D0D /* Ant Farm */,
+				6B22168D306725B500324D0D /* Ant FarmTests */,
+				6B221697306725B500324D0D /* Ant FarmUITests */,
+				6B22167E306725B400324D0D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		6B22167E306725B400324D0D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6B22167D306725B400324D0D /* Ant Farm.app */,
+				6B22168A306725B500324D0D /* Ant FarmTests.xctest */,
+				6B221694306725B500324D0D /* Ant FarmUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6B22167C306725B400324D0D /* Ant Farm */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6B22169C306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant Farm" */;
+			buildPhases = (
+				6B221679306725B400324D0D /* Sources */,
+				6B22167A306725B400324D0D /* Frameworks */,
+				6B22167B306725B400324D0D /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				6B22167F306725B400324D0D /* Ant Farm */,
+			);
+			name = "Ant Farm";
+			productName = "Ant Farm";
+			productReference = 6B22167D306725B400324D0D /* Ant Farm.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6B221689306725B500324D0D /* Ant FarmTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6B22169F306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant FarmTests" */;
+			buildPhases = (
+				6B221686306725B500324D0D /* Sources */,
+				6B221687306725B500324D0D /* Frameworks */,
+				6B221688306725B500324D0D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6B22168C306725B500324D0D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6B22168D306725B500324D0D /* Ant FarmTests */,
+			);
+			name = "Ant FarmTests";
+			productName = "Ant FarmTests";
+			productReference = 6B22168A306725B500324D0D /* Ant FarmTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6B221693306725B500324D0D /* Ant FarmUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6B2216A2306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant FarmUITests" */;
+			buildPhases = (
+				6B221690306725B500324D0D /* Sources */,
+				6B221691306725B500324D0D /* Frameworks */,
+				6B221692306725B500324D0D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6B221696306725B500324D0D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6B221697306725B500324D0D /* Ant FarmUITests */,
+			);
+			name = "Ant FarmUITests";
+			productName = "Ant FarmUITests";
+			productReference = 6B221694306725B500324D0D /* Ant FarmUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6B221675306725B400324D0D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					6B22167C306725B400324D0D = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					6B221689306725B500324D0D = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 6B22167C306725B400324D0D;
+					};
+					6B221693306725B500324D0D = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 6B22167C306725B400324D0D;
+					};
+				};
+			};
+			buildConfigurationList = 6B221678306725B400324D0D /* Build configuration list for PBXProject "Ant Farm" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 6B221674306725B400324D0D;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6B22167E306725B400324D0D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6B22167C306725B400324D0D /* Ant Farm */,
+				6B221689306725B500324D0D /* Ant FarmTests */,
+				6B221693306725B500324D0D /* Ant FarmUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6B22167B306725B400324D0D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6B221688306725B500324D0D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6B221692306725B500324D0D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6B221679306725B400324D0D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		6B221686306725B500324D0D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		6B221690306725B500324D0D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6B22168C306725B500324D0D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6B22167C306725B400324D0D /* Ant Farm */;
+			targetProxy = 6B22168B306725B500324D0D /* PBXContainerItemProxy */;
+		};
+		6B221696306725B500324D0D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6B22167C306725B400324D0D /* Ant Farm */;
+			targetProxy = 6B221695306725B500324D0D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		6B22169A306725B500324D0D /* Debug configuration for PBXProject "Ant Farm" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		6B22169B306725B500324D0D /* Release configuration for PBXProject "Ant Farm" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		6B22169D306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant Farm" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-Farm";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		6B22169E306725B500324D0D /* Release configuration for PBXNativeTarget "Ant Farm" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-Farm";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		6B2216A0306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant FarmTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-FarmTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ant Farm.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ant Farm";
+			};
+			name = Debug;
+		};
+		6B2216A1306725B500324D0D /* Release configuration for PBXNativeTarget "Ant FarmTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-FarmTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ant Farm.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ant Farm";
+			};
+			name = Release;
+		};
+		6B2216A3306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant FarmUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-FarmUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Ant Farm";
+			};
+			name = Debug;
+		};
+		6B2216A4306725B500324D0D /* Release configuration for PBXNativeTarget "Ant FarmUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 657AK7D2D9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.cmorrell.Ant-FarmUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Ant Farm";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6B221678306725B400324D0D /* Build configuration list for PBXProject "Ant Farm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B22169A306725B500324D0D /* Debug configuration for PBXProject "Ant Farm" */,
+				6B22169B306725B500324D0D /* Release configuration for PBXProject "Ant Farm" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6B22169C306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant Farm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B22169D306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant Farm" */,
+				6B22169E306725B500324D0D /* Release configuration for PBXNativeTarget "Ant Farm" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6B22169F306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant FarmTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B2216A0306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant FarmTests" */,
+				6B2216A1306725B500324D0D /* Release configuration for PBXNativeTarget "Ant FarmTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6B2216A2306725B500324D0D /* Build configuration list for PBXNativeTarget "Ant FarmUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B2216A3306725B500324D0D /* Debug configuration for PBXNativeTarget "Ant FarmUITests" */,
+				6B2216A4306725B500324D0D /* Release configuration for PBXNativeTarget "Ant FarmUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6B221675306725B400324D0D /* Project object */;
+	validationLevel = 1;
+}
