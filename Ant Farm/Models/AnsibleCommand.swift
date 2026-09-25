@@ -78,7 +78,7 @@ nonisolated struct AnsibleCommand: Equatable, Sendable {
             let arg = rest[index]
             let next = index + 1 < rest.count ? rest[index + 1] : nil
 
-            if let (flag, value) = Self.splitEquals(arg) {
+            if case let (flag, value)? = Self.splitEquals(arg) {
                 if !apply(flag: flag, value: value, split: split) {
                     extra.append(arg)
                 }

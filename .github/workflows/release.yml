@@ -54,6 +54,10 @@ jobs:
           sudo xcode-select -s "$XCODE_APP"
           xcodebuild -version
 
+      # SwiftTerm compiles Metal shaders; the runner image doesn't ship the toolchain.
+      - name: Install Metal toolchain
+        run: xcodebuild -downloadComponent MetalToolchain
+
       - name: Derive version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"

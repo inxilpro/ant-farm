@@ -158,7 +158,7 @@ struct SelectionSummary: View {
         if !selection.excluded.isEmpty {
             if !result.characters.isEmpty { result += AttributedString("  ") }
             var excluded = AttributedString("not " + selection.excluded.joined(separator: ", "))
-            excluded.foregroundColor = .red
+            excluded.foregroundColor = Color.red
             result += excluded
         }
         return result

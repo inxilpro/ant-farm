@@ -41,20 +41,20 @@ nonisolated struct InventoryContents: Equatable, Sendable {
     static func parse(_ list: [String: Any]) -> InventoryContents {
         let groupNames = list.keys.filter { $0 != "_meta" && $0 != "all" }
 
-        func hostsIn(_ name: String, seen: inout Set<String>) -> Set<String> {
+        func collectHosts(_ name: String, seen: inout Set<String>) -> Set<String> {
             guard !seen.contains(name) else { return [] }
             seen.insert(name)
             let group = list[name] as? [String: Any]
             var hosts = Set(group?["hosts"] as? [String] ?? [])
             for child in group?["children"] as? [String] ?? [] {
-                hosts.formUnion(hostsIn(child, seen: &seen))
+                hosts.formUnion(collectHosts(child, seen: &seen))
             }
             return hosts
         }
 
         func hostsIn(_ name: String) -> Set<String> {
             var seen = Set<String>()
-            return hostsIn(name, seen: &seen)
+            return collectHosts(name, seen: &seen)
         }
 
         let groups = groupNames

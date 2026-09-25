@@ -31,6 +31,10 @@ jobs:
           sudo xcode-select -s "$XCODE_APP"
           xcodebuild -version
 
+      # SwiftTerm compiles Metal shaders; the runner image doesn't ship the toolchain.
+      - name: Install Metal toolchain
+        run: xcodebuild -downloadComponent MetalToolchain
+
       - name: Build and run unit tests
         run: |
           set -o pipefail
@@ -43,7 +47,15 @@ jobs:
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            > build.log 2>&1 || {
+              echo "::group::Errors"
+              grep -E '(error|failed):' build.log | sort -u | head -100
+              echo "::endgroup::"
+              tail -60 build.log
+              exit 1
+            }
+          grep -E 'Test run|passed|failed' build.log | tail -20 || true
 
       # Package.resolved is committed; flag drift so it gets updated.
       - name: Check Package.resolved
