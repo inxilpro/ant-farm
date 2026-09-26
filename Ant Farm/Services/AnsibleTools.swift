@@ -68,6 +68,20 @@ nonisolated struct AnsibleTools: Sendable {
     }
 }
 
+/// Settings read from `ansible-config dump`.
+nonisolated struct AnsibleConfig: Sendable {
+    /// The default inventory from ansible.cfg or ANSIBLE_INVENTORY, if one is set.
+    var inventory: InventorySource?
+    /// Where Ansible looks for callback plugins. Ant Farm adds its own folder in front.
+    var callbackPluginPaths = defaultCallbackPluginPaths
+
+    /// Ansible's built-in DEFAULT_CALLBACK_PLUGIN_PATH.
+    static var defaultCallbackPluginPaths: [String] {
+        ["~/.ansible/plugins/callback", "/usr/share/ansible/plugins/callback"]
+            .map { ($0 as NSString).expandingTildeInPath }
+    }
+}
+
 nonisolated enum LoginShell {
     private static let marker = "__ANT_FARM_ENV__"
 

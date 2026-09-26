@@ -2,11 +2,8 @@
 
 ## Terminal
 
-- **Make the terminal optional.** Parse Ansible's output into a native view:
-  plays and tasks as a list, per-host status (ok, changed, failed, skipped),
-  collapsible diffs, and a summary of the play recap. Keep the raw terminal
-  one click away for prompts and debugging. A JSON or custom callback plugin
-  (`ANSIBLE_STDOUT_CALLBACK`) may be cleaner than parsing text.
+- **Run view follow-ups.** Show planned tasks as pending in the run report,
+  per-item results for loops, and timing per task.
 - **libghostty.** Swap SwiftTerm for libghostty-vt once its API settles and
   there is a way to ship it as an xcframework. Only
   `Terminal/TerminalController.swift` (and the `AntTerminalView` in it) knows

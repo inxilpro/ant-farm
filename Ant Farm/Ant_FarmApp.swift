@@ -81,7 +81,7 @@ private struct AppCommands: Commands {
                 .keyboardShortcut("2")
                 .disabled(app.workspace == nil)
             Divider()
-            Button("Clear Terminal") { app.terminal.clear() }
+            Button("Clear Run") { app.clearRun() }
                 .keyboardShortcut("k")
                 .disabled(app.terminal.isRunning)
             Button("Reload") { Task { await app.reload() } }

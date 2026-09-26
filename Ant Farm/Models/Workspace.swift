@@ -28,6 +28,7 @@ final class Workspace {
                     await loadInventoryContents()
                     await loadTags()
                 }
+                schedulePlan()
             }
         }
     }
@@ -36,7 +37,10 @@ final class Workspace {
         didSet {
             guard selectedPlaybookPath != oldValue else { return }
             save()
-            if !suppressLoads { Task { await loadTags() } }
+            if !suppressLoads {
+                Task { await loadTags() }
+                schedulePlan()
+            }
         }
     }
 
@@ -50,10 +54,19 @@ final class Workspace {
     private(set) var isLoadingTags = false
     private(set) var tagsError: String?
 
+    // Plan
+    private(set) var plan: RunPlan?
+    private(set) var isLoadingPlan = false
+    private(set) var planError: String?
+    @ObservationIgnored private var planTask: Task<Void, Never>?
+
+    /// Callback plugin folders from ansible.cfg, kept when Ant Farm adds its own.
+    private(set) var callbackPluginPaths = AnsibleConfig.defaultCallbackPluginPaths
+
     // Selections
-    var limit = Selection() { didSet { save() } }
-    var tagSelection = Selection() { didSet { save() } }
-    var extraArguments = "" { didSet { save() } }
+    var limit = Selection() { didSet { selectionChanged(limit != oldValue) } }
+    var tagSelection = Selection() { didSet { selectionChanged(tagSelection != oldValue) } }
+    var extraArguments = "" { didSet { selectionChanged(extraArguments != oldValue) } }
     var mode: RunMode = .check
 
     private(set) var history: [[String]] = []
@@ -83,10 +96,12 @@ final class Workspace {
         let directory = directory
         async let found = Discovery.inventories(in: directory)
         async let foundPlaybooks = Discovery.playbooks(in: directory)
-        var configured: InventorySource?
+        var config = AnsibleConfig()
         if let tools {
-            configured = await Discovery.configuredInventory(in: directory, tools: tools)
+            config = await Discovery.config(in: directory, tools: tools)
         }
+        callbackPluginPaths = config.callbackPluginPaths
+        let configured = config.inventory
 
         var sources = await found
         if let configured {
@@ -100,6 +115,7 @@ final class Workspace {
         history = RunHistory.load(from: directory)
 
         restore()
+        schedulePlan()
         await loadInventoryContents()
         await loadTags()
     }
@@ -143,6 +159,50 @@ final class Workspace {
             guard playbook.path == selectedPlaybookPath else { return }
             tags = []
             tagsError = error.localizedDescription
+        }
+    }
+
+    // MARK: Plan
+
+    private func selectionChanged(_ changed: Bool) {
+        save()
+        if changed && !suppressLoads {
+            schedulePlan()
+        }
+    }
+
+    /// Reloads the plan shortly after the selections stop changing.
+    func schedulePlan() {
+        planTask?.cancel()
+        guard let command = command(), let tools else {
+            planTask = nil
+            plan = nil
+            planError = nil
+            isLoadingPlan = false
+            return
+        }
+
+        isLoadingPlan = true
+        let directory = directory
+        planTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            let result: Result<RunPlan, Error>
+            do {
+                result = .success(try await Discovery.plan(for: command, in: directory, tools: tools))
+            } catch {
+                result = .failure(error)
+            }
+            guard !Task.isCancelled, let self else { return }
+            switch result {
+            case .success(let plan):
+                self.plan = plan
+                self.planError = nil
+            case .failure(let error):
+                self.plan = nil
+                self.planError = error.localizedDescription
+            }
+            self.isLoadingPlan = false
         }
     }
 

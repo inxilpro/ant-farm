@@ -14,6 +14,7 @@ enum SettingsKey {
     static let alwaysDiff = "alwaysDiff"
     static let saveHistory = "saveHistory"
     static let terminalFontSize = "terminalFontSize"
+    static let runView = "runView"
     static let selectionsPrefix = "workspace:"
 }
 
@@ -35,6 +36,12 @@ enum AppDefaults {
         get { UserDefaults.standard.stringArray(forKey: SettingsKey.recentDirectories) ?? [] }
         set { UserDefaults.standard.set(Array(newValue.prefix(10)), forKey: SettingsKey.recentDirectories) }
     }
+}
+
+/// How the detail pane shows a run: Ant Farm's report, or Ansible's own terminal output.
+enum RunView: String {
+    case summary
+    case terminal
 }
 
 /// What Ant Farm remembers about a workspace between launches.

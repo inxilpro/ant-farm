@@ -105,6 +105,11 @@ final class TerminalController {
         mode = nil
     }
 
+    /// Moves keyboard focus to the terminal, e.g. so someone can answer a prompt.
+    func focus() {
+        view.window?.makeFirstResponder(view)
+    }
+
     func setFontSize(_ size: Double) {
         view.applyFontSize(size)
     }

@@ -15,27 +15,43 @@ nonisolated enum Discovery {
 
     // MARK: Inventories
 
-    /// Ansible's configured default inventory (ansible.cfg or ANSIBLE_INVENTORY), if one is set.
+    /// Settings Ant Farm needs from `ansible-config dump` (ansible.cfg, ANSIBLE_* variables).
     @concurrent
-    static func configuredInventory(in directory: URL, tools: AnsibleTools) async -> InventorySource? {
+    static func config(in directory: URL, tools: AnsibleTools) async -> AnsibleConfig {
         guard let result = try? await ProcessRunner.run(
             tools.config,
             arguments: ["dump", "--only-changed", "--format", "json"],
             in: directory,
             environment: tools.environment
-        ), result.status == 0 else { return nil }
-        return parseConfigDump(result.stdout, relativeTo: directory)
+        ), result.status == 0 else { return AnsibleConfig() }
+        return AnsibleConfig(
+            inventory: parseConfigDump(result.stdout, relativeTo: directory),
+            callbackPluginPaths: parseCallbackPluginPaths(result.stdout)
+        )
     }
 
+    /// Ansible's configured default inventory (ansible.cfg or ANSIBLE_INVENTORY), if one is set.
     static func parseConfigDump(_ data: Data, relativeTo directory: URL) -> InventorySource? {
-        guard let settings = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-              let setting = settings.first(where: { $0["name"] as? String == "DEFAULT_HOST_LIST" }),
+        guard let setting = configSetting("DEFAULT_HOST_LIST", in: data),
               let paths = setting["value"] as? [String], !paths.isEmpty
         else { return nil }
 
         let origin = (setting["origin"] as? String)?.hasPrefix("env:") == true ? "ANSIBLE_INVENTORY" : "ansible.cfg"
         let label = paths.map { relativePath($0, to: directory) }.joined(separator: ", ")
         return InventorySource(paths: [], label: label, hint: "Default from \(origin)")
+    }
+
+    /// Where Ansible looks for callback plugins, falling back to its built-in default.
+    static func parseCallbackPluginPaths(_ data: Data) -> [String] {
+        let value = configSetting("DEFAULT_CALLBACK_PLUGIN_PATH", in: data)?["value"]
+        let paths = (value as? [String]) ?? (value as? String)?.split(separator: ":").map(String.init)
+        guard let paths, !paths.isEmpty else { return AnsibleConfig.defaultCallbackPluginPaths }
+        return paths
+    }
+
+    private static func configSetting(_ name: String, in data: Data) -> [String: Any]? {
+        guard let settings = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+        return settings.first { $0["name"] as? String == name }
     }
 
     /// Files and directories in the workspace root that look like inventories.
@@ -187,6 +203,34 @@ nonisolated enum Discovery {
             }
         }
         return tags.sorted(by: InventoryContents.order)
+    }
+
+    // MARK: Plan
+
+    /// What a command will do, via `ansible-playbook --list-hosts --list-tasks`.
+    @concurrent
+    static func plan(for command: AnsibleCommand, in directory: URL, tools: AnsibleTools) async throws -> RunPlan {
+        let result = try await ProcessRunner.run(
+            tools.playbook,
+            arguments: planArguments(for: command),
+            in: directory,
+            environment: tools.environment,
+            timeout: 120
+        )
+        guard result.status == 0 else {
+            throw AntFarmError.message(failure("ansible-playbook --list-tasks", result))
+        }
+        return RunPlan.parse(result.output)
+    }
+
+    /// The command's arguments with `--list-hosts --list-tasks` added. Flags that would
+    /// prompt are dropped, since there's no terminal to answer them.
+    static func planArguments(for command: AnsibleCommand) -> [String] {
+        var command = command
+        command.extra.removeAll { AnsibleCommand.promptFlags.contains($0) }
+        var args = Array(command.argv.dropFirst())
+        args.insert(contentsOf: ["--list-hosts", "--list-tasks"], at: args.count - 1)
+        return args
     }
 
     // MARK: Helpers
