@@ -15,12 +15,7 @@ struct TerminalPane: View {
 
     private var report: RunReport { app.monitor.report }
 
-    /// The terminal takes over when Ansible needs input, or when there's no report to show.
-    private var isTerminalForced: Bool {
-        guard app.terminal.status != .idle else { return false }
-        if report.isWaitingForInput { return true }
-        return !report.hasEvents && (!app.terminal.isRunning || !app.monitor.isAvailable)
-    }
+    private var isTerminalForced: Bool { app.isTerminalForced }
 
     private var showsTerminal: Bool {
         guard app.terminal.status != .idle else { return false }
@@ -103,12 +98,11 @@ private struct CommandHeader: View {
                     .help(ShellQuoting.format(argv))
 
                 Button("Copy Command", systemImage: "doc.on.doc") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(ShellQuoting.format(argv), forType: .string)
+                    copyCommand(argv)
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
-                .help("Copy command")
+                .help("Copy command (⇧⌘C)")
             } else {
                 Text("Choose a playbook to run")
                     .foregroundStyle(.secondary)

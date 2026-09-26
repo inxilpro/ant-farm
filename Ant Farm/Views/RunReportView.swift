@@ -11,7 +11,8 @@ struct RunReportView: View {
     let isRunning: Bool
     let showTerminal: () -> Void
 
-    @State private var onlyChanges = false
+    @AppStorage(SettingsKey.onlyChanges) private var onlyChanges = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expanded: Set<String> = []
     @State private var collapsed: Set<String> = []
 
@@ -43,7 +44,7 @@ struct RunReportView: View {
                 }
                 .onChange(of: report.currentTask?.id) { _, id in
                     guard isRunning, let id else { return }
-                    withAnimation { proxy.scrollTo(id, anchor: .bottom) }
+                    withAnimation(reduceMotion ? nil : .default) { proxy.scrollTo(id, anchor: .bottom) }
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) {

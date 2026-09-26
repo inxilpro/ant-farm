@@ -55,6 +55,15 @@ struct WelcomeView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .help(url.path.abbreviatingHome)
+                        .contextMenu {
+                            Button("Open") { Task { await app.open(url) } }
+                            Button("Show in Finder") {
+                                NSWorkspace.shared.activateFileViewerSelecting([url])
+                            }
+                            Divider()
+                            Button("Remove from Recents") { app.removeRecent(url) }
+                        }
                     }
                 }
                 .frame(width: 320)
@@ -69,13 +78,9 @@ struct WelcomeView: View {
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dropDestination(for: URL.self) { urls, _ in
-            guard let url = urls.first, url.hasDirectoryPath || isDirectory(url) else { return false }
+            guard let url = urls.first(where: \.isFolder) else { return false }
             Task { await app.open(url) }
             return true
         }
-    }
-
-    private func isDirectory(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }
 }

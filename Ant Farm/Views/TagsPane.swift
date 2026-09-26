@@ -8,6 +8,7 @@ import SwiftUI
 
 /// Second pane: pick the tags to run (or skip) in the selected playbook.
 struct TagsPane: View {
+    @Environment(\.undoManager) private var undoManager
     @Bindable var workspace: Workspace
     @State private var filter = ""
 
@@ -20,7 +21,9 @@ struct TagsPane: View {
                     title: tag,
                     systemImage: tag == "always" || tag == "never" ? "tag.slash" : "tag",
                     state: workspace.tagSelection.state(of: tag)
-                ) { workspace.tagSelection.set(tag, to: $0) }
+                ) { state in
+                    workspace.changeSelections(state.actionName, undoManager: undoManager) { $0.tagSelection.set(tag, to: state) }
+                }
             }
         }
         .overlay { overlay(filteredEmpty: tags.isEmpty) }
@@ -32,7 +35,7 @@ struct TagsPane: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 SelectionSummary(emptyText: "Runs all tags", selection: workspace.tagSelection) {
-                    workspace.tagSelection.removeAll()
+                    workspace.changeSelections("Clear Tags", undoManager: undoManager) { $0.tagSelection.removeAll() }
                 }
                 TextField("Extra arguments", text: $workspace.extraArguments, prompt: Text("Extra arguments, e.g. -e env=staging"))
                     .textFieldStyle(.roundedBorder)

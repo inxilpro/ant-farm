@@ -317,6 +317,7 @@ private struct TagStack: View {
     let tags: [String]
     var collapseAfter = 2
     @State private var isHovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// How far each tag behind the first peeks out, and how many of them show.
     private let peek: CGFloat = 4
@@ -336,8 +337,12 @@ private struct TagStack: View {
         }
         .fixedSize()
         .contentShape(Rectangle())
+        .help(tags.joined(separator: ", "))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(tags.count == 1 ? "Tag" : "Tags")
+        .accessibilityValue(tags.joined(separator: ", "))
         .onHover { isHovering = $0 }
-        .animation(.snappy(duration: 0.2), value: isHovering)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: isHovering)
     }
 
     private var stack: some View {
