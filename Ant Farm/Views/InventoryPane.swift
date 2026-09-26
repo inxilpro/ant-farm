@@ -10,6 +10,7 @@ import SwiftUI
 /// and inventory to run with.
 struct InventoryPane: View {
     @Environment(AppState.self) private var app
+    @Environment(\.undoManager) private var undoManager
     @Bindable var workspace: Workspace
     @State private var filter = ""
     /// Groups the user has folded away. Groups start out expanded.
@@ -34,7 +35,7 @@ struct InventoryPane: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
                 SelectionSummary(emptyText: "Runs on all hosts", selection: workspace.limit) {
-                    workspace.limit.removeAll()
+                    workspace.changeSelections("Clear Hosts", undoManager: undoManager) { $0.limit.removeAll() }
                 }
                 PlaybookPickers(workspace: workspace)
             }
@@ -64,7 +65,9 @@ struct InventoryPane: View {
                         title: host,
                         systemImage: "desktopcomputer",
                         state: workspace.limit.state(of: host)
-                    ) { workspace.limit.set(host, to: $0) }
+                    ) { state in
+                        workspace.changeSelections(state.actionName, undoManager: undoManager) { $0.limit.set(host, to: state) }
+                    }
                 }
             }
         }
@@ -97,6 +100,7 @@ struct InventoryPane: View {
 
 /// A group and, beneath it, the groups it contains.
 private struct GroupTreeRow: View {
+    @Environment(\.undoManager) private var undoManager
     let node: InventoryGroupNode
     let workspace: Workspace
     @Binding var collapsed: Set<[String]>
@@ -125,7 +129,9 @@ private struct GroupTreeRow: View {
             systemImage: "square.stack.3d.up",
             help: group.hosts.joined(separator: ", "),
             state: workspace.limit.state(of: group.name)
-        ) { workspace.limit.set(group.name, to: $0) }
+        ) { state in
+            workspace.changeSelections(state.actionName, undoManager: undoManager) { $0.limit.set(group.name, to: state) }
+        }
     }
 
     private var isExpanded: Binding<Bool> {

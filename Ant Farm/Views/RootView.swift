@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.openWindow) private var openWindow
     @State private var started = false
 
     var body: some View {
@@ -22,6 +23,8 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 500)
         .task {
+            let openWindow = openWindow
+            app.showWindow = { openWindow(id: "main") }
             // Unit tests are hosted in the app; a modal open panel would stall them.
             guard !started, !AppDefaults.isRunningTests else { return }
             started = true

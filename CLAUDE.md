@@ -6,6 +6,9 @@ and follows that CLI's discovery rules and history file format.
 
 ## Layout
 
+- `Ant Farm/Ant_FarmApp.swift`: the scenes, the menu bar (`AppCommands`), and
+  `AppDelegate`, which owns `AppState` and opens folders sent from Finder or
+  the Dock.
 - `Ant Farm/Models`: `AppState` (open workspace, located tools, runs),
   `Workspace` (discovery results, selections, and the run plan for one
   folder), `AnsibleCommand` (argv building and parsing), `Selection`
@@ -38,5 +41,7 @@ and follows that CLI's discovery rules and history file format.
 - Before opening a PR, fetch the target branch and merge it in (or rebase a
   branch only you use), so the PR opens with no conflicts and CI tests the
   code as it will land.
+- UI work follows the `mac-assed-mac-app` skill (`.claude/skills/`). The last
+  review against it is `Documentation/MAC-REVIEW.md`.
 - Releases: push a `vX.Y.Z` tag; see `Documentation/RELEASING.md`.
 - Future work: `Documentation/ROADMAP.md`.

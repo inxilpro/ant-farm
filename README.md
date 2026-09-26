@@ -9,11 +9,12 @@ terminal: pick hosts, pick tags, choose check or live mode, and run.
 
 ## How it works
 
-1. Open a folder with your Ansible inventory and playbooks. Ant Farm reopens
-   the last folder on launch.
+1. Open a folder with your Ansible inventory and playbooks: use File > Open
+   Folder, drop the folder on the window or the Dock icon, or use Open With in
+   Finder. Ant Farm reopens the last folder on launch.
 2. **Inventory pane:** pick the groups and hosts to run on. Click to include,
    Option-click (or right-click) to exclude. With nothing picked, the run
-   targets every host.
+   targets every host. Edit > Undo reverses a change.
 3. **Tags pane:** pick tags to run or skip. With nothing picked, every task runs.
    Put extra `ansible-playbook` arguments (`-e env=staging`,
    `--ask-become-pass`) in the field below the tags.
@@ -65,12 +66,16 @@ re-runs a past command in check or live mode or restores its selections.
 | Action | Shortcut |
 | --- | --- |
 | Open folder | ⌘O |
+| Copy command | ⇧⌘C |
 | Run | ⌘R |
 | Run in check mode | ⌥⌘R |
 | Stop / force stop | ⌘. / ⌃C or ⌥⌘. |
 | Check mode / live mode | ⌘1 / ⌘2 |
 | Clear run | ⌘K |
 | Reload | ⇧⌘R |
+| Show terminal | ⌃⌘T |
+| Terminal font bigger / smaller / default | ⌘+ / ⌘- / ⌘0 |
+| Clear a filter field | Esc |
 
 ## Development
 

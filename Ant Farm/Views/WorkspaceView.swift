@@ -10,11 +10,13 @@ import SwiftUI
 /// playbook, and inventory; then come the tags and the terminal. The toolbar holds only actions.
 struct WorkspaceView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.undoManager) private var undoManager
     @Bindable var workspace: Workspace
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    /// Which columns show, kept across launches.
+    @SceneStorage("columnVisibility") private var storedVisibility = "all"
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView(columnVisibility: columnVisibility) {
             InventoryPane(workspace: workspace)
         } content: {
             TagsPane(workspace: workspace)
@@ -26,6 +28,14 @@ struct WorkspaceView: View {
         // The window keeps its title for the Window menu; the sidebar shows the folder instead.
         .navigationTitle(workspace.name)
         .toolbar(removing: .title)
+        // Undo can't reach a folder that's no longer open.
+        .onDisappear { undoManager?.removeAllActions(withTarget: workspace) }
+        // Drop another folder on the window to switch to it.
+        .dropDestination(for: URL.self) { urls, _ in
+            guard !app.terminal.isRunning, let url = urls.first(where: \.isFolder) else { return false }
+            Task { await app.open(url) }
+            return true
+        }
         .confirmationDialog(
             "Run in live mode?",
             isPresented: Binding(
@@ -49,6 +59,25 @@ struct WorkspaceView: View {
         } message: { command in
             Text("This will make real changes.\n\n\(ShellQuoting.format(command.argv))")
         }
+    }
+
+    private var columnVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: {
+                switch storedVisibility {
+                case "doubleColumn": .doubleColumn
+                case "detailOnly": .detailOnly
+                default: .all
+                }
+            },
+            set: { visibility in
+                switch visibility {
+                case .doubleColumn: storedVisibility = "doubleColumn"
+                case .detailOnly: storedVisibility = "detailOnly"
+                default: storedVisibility = "all"
+                }
+            }
+        )
     }
 
     @ToolbarContentBuilder
@@ -113,10 +142,7 @@ struct HistoryMenu: View {
                             workspace.apply(command)
                         }
                     }
-                    Button("Copy Command") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(ShellQuoting.format(argv), forType: .string)
-                    }
+                    Button("Copy Command") { copyCommand(argv) }
                 }
                 .disabled(app.terminal.isRunning)
             }
@@ -156,6 +182,18 @@ struct FolderMenuItems: View {
                 NSWorkspace.shared.activateFileViewerSelecting([workspace.directory])
             }
         }
+    }
+}
+
+/// Puts a command on the pasteboard as shell-quoted text, ready to paste into Terminal.
+func copyCommand(_ argv: [String]) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(ShellQuoting.format(argv), forType: .string)
+}
+
+extension URL {
+    var isFolder: Bool {
+        (try? resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }
 }
 

@@ -94,6 +94,15 @@ struct StateIcon: View {
 }
 
 extension SelectionState {
+    /// The name Edit > Undo shows for a change to this state.
+    var actionName: String {
+        switch self {
+        case .none: "Deselect"
+        case .included: "Include"
+        case .excluded: "Exclude"
+        }
+    }
+
     var accessibilityLabel: String {
         switch self {
         case .none: "Not selected"
@@ -114,6 +123,7 @@ struct FilterField: View {
                 .foregroundStyle(.secondary)
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
+                .onExitCommand { text = "" }
             if !text.isEmpty {
                 Button("Clear Filter", systemImage: "xmark.circle.fill") { text = "" }
                     .labelStyle(.iconOnly)

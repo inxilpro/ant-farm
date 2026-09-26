@@ -254,6 +254,30 @@ final class Workspace {
         mode = command.mode
     }
 
+    // MARK: Undo
+
+    /// Changes the host and tag selections so Edit > Undo can put them back.
+    func changeSelections(_ actionName: String, undoManager: UndoManager?, _ change: (Workspace) -> Void) {
+        let before = (limit, tagSelection)
+        change(self)
+        guard before != (limit, tagSelection) else { return }
+        registerUndo(restoring: before, actionName: actionName, undoManager: undoManager)
+    }
+
+    private func registerUndo(restoring selections: (Selection, Selection), actionName: String, undoManager: UndoManager?) {
+        guard let undoManager else { return }
+        let current = (limit, tagSelection)
+        undoManager.registerUndo(withTarget: self) { workspace in
+            MainActor.assumeIsolated {
+                workspace.limit = selections.0
+                workspace.tagSelection = selections.1
+                // Registering the reverse from inside an undo makes it the redo.
+                workspace.registerUndo(restoring: current, actionName: actionName, undoManager: undoManager)
+            }
+        }
+        undoManager.setActionName(actionName)
+    }
+
     // MARK: Persistence
 
     private var defaultsKey: String { SettingsKey.selectionsPrefix + directory.path }

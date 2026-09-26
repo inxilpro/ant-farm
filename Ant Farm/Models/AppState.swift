@@ -23,6 +23,11 @@ final class AppState {
     var pendingLiveRun: AnsibleCommand?
 
     @ObservationIgnored private var environment: [String: String]?
+    @ObservationIgnored private var started = false
+    /// A folder Finder or the Dock asked to open before `start()` finished.
+    @ObservationIgnored private var pendingOpen: URL?
+    /// Shows the main window, which may have been closed. Set by `RootView`.
+    @ObservationIgnored var showWindow: (() -> Void)?
 
     init() {
         recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
@@ -37,12 +42,27 @@ final class AppState {
     @discardableResult
     func start() async -> Bool {
         await locateTools()
+        started = true
+        if let url = pendingOpen {
+            pendingOpen = nil
+            await open(url)
+            return true
+        }
         if let path = UserDefaults.standard.string(forKey: SettingsKey.lastDirectory),
            FileManager.default.fileExists(atPath: path) {
             await open(URL(fileURLWithPath: path))
             return true
         }
         return false
+    }
+
+    /// Opens a folder dropped on the Dock icon, chosen with Open With, or picked from the Dock's recent items.
+    func openFromSystem(_ url: URL) {
+        guard started else {
+            pendingOpen = url
+            return
+        }
+        Task { await open(url) }
     }
 
     func locateTools() async {
@@ -66,6 +86,7 @@ final class AppState {
 
         let workspace = Workspace(directory: directory, tools: tools)
         self.workspace = workspace
+        showWindow?()
         NSDocumentController.shared.noteNewRecentDocumentURL(directory)
         await workspace.reload()
     }
@@ -80,8 +101,14 @@ final class AppState {
         UserDefaults.standard.removeObject(forKey: SettingsKey.lastDirectory)
     }
 
+    func removeRecent(_ url: URL) {
+        AppDefaults.recentDirectories = AppDefaults.recentDirectories.filter { $0 != url.path }
+        recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
+    }
+
     func clearRecents() {
         AppDefaults.recentDirectories = []
+        NSDocumentController.shared.clearRecentDocuments(nil)
         recentDirectories = []
     }
 
@@ -145,6 +172,22 @@ final class AppState {
 
     func stop() {
         terminal.stop()
+    }
+
+    /// The command the run pane shows: the run in progress (or just finished), else the next one.
+    var displayedCommand: [String]? {
+        if terminal.status != .idle, let command = terminal.command {
+            return command
+        }
+        let diff = UserDefaults.standard.bool(forKey: SettingsKey.alwaysDiff)
+        return workspace?.command(diff: diff)?.argv
+    }
+
+    /// The terminal takes over when Ansible needs input, or when there's no report to show.
+    var isTerminalForced: Bool {
+        guard terminal.status != .idle else { return false }
+        if monitor.report.isWaitingForInput { return true }
+        return !monitor.report.hasEvents && (!terminal.isRunning || !monitor.isAvailable)
     }
 
     /// Clears the terminal and the report of the last run.
