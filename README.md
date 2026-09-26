@@ -18,9 +18,15 @@ terminal: pick hosts, pick tags, choose check or live mode, and run.
    Put extra `ansible-playbook` arguments (`-e env=staging`,
    `--ask-become-pass`) in the field below the tags.
 4. **Toolbar:** choose the playbook and Check or Live mode, then Run (⌘R).
-5. **Terminal pane:** shows the command and the run. It is a real terminal, so
-   password prompts work. Stop (⌘.) interrupts the run and lets Ansible
-   clean up. Ctrl-C or ⌥⌘. kills it at once.
+5. **Run pane:** before a run, shows what it will do: each play, the hosts
+   it targets, and the tasks it will run with your tags (from
+   `ansible-playbook --list-hosts --list-tasks`). During and after a run, it
+   shows each task's result per host, with diffs and errors, and the recap.
+   Stop (⌘.) interrupts the run and lets Ansible clean up. Ctrl-C or ⌥⌘. kills
+   it at once.
+6. **Terminal:** the switch in the pane's header shows Ansible's own output
+   in a real terminal. It opens by itself when Ansible asks for input, such as
+   a password or a `vars_prompt`.
 
 Live runs ask for confirmation first. You can turn that off in Settings.
 
@@ -39,6 +45,15 @@ Ant Farm follows the same rules as ansible-interactive:
 Ant Farm finds Ansible through your login shell's `PATH`, then Homebrew and
 `~/.local/bin`. You can set the folder in Settings.
 
+## How the run view works
+
+Ant Farm adds a small callback plugin (`Ant Farm/Callback/antfarm.py`) to each
+run through `ANSIBLE_CALLBACK_PLUGINS`, after copying it to a temporary
+folder. The plugin writes each event as a line of JSON to a file Ant Farm
+reads; Ansible's normal output still goes to the terminal. Callback folders
+from your `ansible.cfg` stay on the path, and `callbacks_enabled` is left
+alone. If the plugin doesn't load, Ant Farm shows the terminal instead.
+
 ## History
 
 Runs are saved to `.ansible-interactive-history` in the workspace, the same
@@ -54,7 +69,7 @@ re-runs a past command in check or live mode or restores its selections.
 | Run in check mode | ⌥⌘R |
 | Stop / force stop | ⌘. / ⌃C or ⌥⌘. |
 | Check mode / live mode | ⌘1 / ⌘2 |
-| Clear terminal | ⌘K |
+| Clear run | ⌘K |
 | Reload | ⇧⌘R |
 
 ## Development

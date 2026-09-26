@@ -34,6 +34,12 @@ nonisolated struct AnsibleCommand: Equatable, Sendable {
     var diff: Bool = true
     var extra: [String] = []
 
+    /// Flags that make ansible-playbook prompt in the terminal before the playbook starts.
+    static let promptFlags: Set<String> = [
+        "-k", "--ask-pass", "-K", "--ask-become-pass", "--ask-su-pass", "--ask-sudo-pass",
+        "-J", "--ask-vault-pass", "--ask-vault-password",
+    ]
+
     var argv: [String] {
         var argv = ["ansible-playbook"]
         for source in inventory {

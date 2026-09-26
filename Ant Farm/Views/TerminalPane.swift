@@ -6,18 +6,63 @@
 import AppKit
 import SwiftUI
 
-/// Third pane: the command about to run (or running) and the terminal showing its output.
+/// Third pane: the command about to run (or running), then what the run will do,
+/// is doing, or did. Ansible's own output is one click away in the terminal.
 struct TerminalPane: View {
     @Environment(AppState.self) private var app
+    @AppStorage(SettingsKey.runView) private var runView = RunView.summary
     let workspace: Workspace
+
+    private var report: RunReport { app.monitor.report }
+
+    /// The terminal takes over when Ansible needs input, or when there's no report to show.
+    private var isTerminalForced: Bool {
+        guard app.terminal.status != .idle else { return false }
+        if report.isWaitingForInput { return true }
+        return !report.hasEvents && (!app.terminal.isRunning || !app.monitor.isAvailable)
+    }
+
+    private var showsTerminal: Bool {
+        guard app.terminal.status != .idle else { return false }
+        return isTerminalForced || runView == .terminal
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            CommandHeader(workspace: workspace)
+            CommandHeader(workspace: workspace, runView: $runView, showsTerminal: showsTerminal, isTerminalForced: isTerminalForced)
             Divider()
-            TerminalHost(controller: app.terminal)
-                .padding(.leading, 6)
-                .background(Color(nsColor: .textBackgroundColor))
+            if report.isWaitingForInput && app.terminal.isRunning {
+                Label("Ansible is waiting for input. Type your answer in the terminal.", systemImage: "keyboard")
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.yellow.opacity(0.2))
+                Divider()
+            }
+            ZStack {
+                TerminalHost(controller: app.terminal, isVisible: showsTerminal)
+                    .padding(.leading, 6)
+                    .background(Color(nsColor: .textBackgroundColor))
+                if !showsTerminal {
+                    Group {
+                        if app.terminal.status == .idle {
+                            PlanView(workspace: workspace)
+                        } else {
+                            RunReportView(report: report, isRunning: app.terminal.isRunning) {
+                                runView = .terminal
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                }
+            }
+        }
+        .onChange(of: showsTerminal) { _, shows in
+            if shows && app.terminal.isRunning {
+                app.terminal.focus()
+            }
         }
     }
 }
@@ -26,6 +71,9 @@ private struct CommandHeader: View {
     @Environment(AppState.self) private var app
     @AppStorage(SettingsKey.alwaysDiff) private var alwaysDiff = true
     let workspace: Workspace
+    @Binding var runView: RunView
+    let showsTerminal: Bool
+    let isTerminalForced: Bool
 
     private var terminal: TerminalController { app.terminal }
 
@@ -67,11 +115,26 @@ private struct CommandHeader: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            if terminal.status != .idle {
+                Picker("View", selection: Binding(
+                    get: { showsTerminal ? RunView.terminal : RunView.summary },
+                    set: { runView = $0 }
+                )) {
+                    Label("Summary", systemImage: "list.bullet.rectangle").tag(RunView.summary)
+                    Label("Terminal", systemImage: "terminal").tag(RunView.terminal)
+                }
+                .pickerStyle(.segmented)
+                .labelStyle(.iconOnly)
+                .fixedSize()
+                .disabled(isTerminalForced)
+                .help(isTerminalForced ? "Showing the terminal: Ansible needs input or there's no summary for this run" : "Show Ant Farm's summary or Ansible's own output")
+            }
+
             if terminal.status != .idle && !terminal.isRunning {
-                Button("Clear", systemImage: "clear") { terminal.clear() }
+                Button("Clear", systemImage: "clear") { app.clearRun() }
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                    .help("Clear the terminal (⌘K)")
+                    .help("Clear the run and show what the next one will do (⌘K)")
             }
         }
         .padding(.horizontal, 12)
@@ -124,12 +187,17 @@ private struct StatusBadge: View {
 }
 
 /// Hosts the controller's long-lived terminal view inside SwiftUI.
+///
+/// The view stays attached while the summary covers it (so its size and scrollback
+/// don't change); it's only hidden, so it doesn't take clicks or keystrokes.
 private struct TerminalHost: NSViewRepresentable {
     let controller: TerminalController
+    var isVisible = true
 
     func makeNSView(context: Context) -> NSView {
         let container = NSView()
         attach(to: container)
+        controller.view.isHidden = !isVisible
         return container
     }
 
@@ -137,6 +205,7 @@ private struct TerminalHost: NSViewRepresentable {
         if controller.view.superview !== container {
             attach(to: container)
         }
+        controller.view.isHidden = !isVisible
     }
 
     private func attach(to container: NSView) {

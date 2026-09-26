@@ -16,6 +16,8 @@ final class AppState {
     private(set) var recentDirectories: [URL] = []
 
     let terminal = TerminalController()
+    /// The native report of the current run, fed by the bundled callback plugin.
+    let monitor = RunMonitor()
 
     /// A live run waiting for the user to confirm it.
     var pendingLiveRun: AnsibleCommand?
@@ -24,6 +26,11 @@ final class AppState {
 
     init() {
         recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
+        _ = NotificationCenter.default.addObserver(forName: .antFarmRunFinished, object: terminal, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.monitor.finish()
+            }
+        }
     }
 
     /// Finds Ansible and reopens the last workspace. Returns false when there's no workspace to open.
@@ -118,10 +125,12 @@ final class AppState {
         if UserDefaults.standard.bool(forKey: SettingsKey.saveHistory) {
             workspace.recordRun(argv)
         }
+        var environment = tools.terminalEnvironment
+        environment.merge(monitor.start(argv: argv, callbackPluginPaths: workspace.callbackPluginPaths)) { $1 }
         terminal.run(
             argv: argv,
             executable: tools.playbook,
-            environment: tools.terminalEnvironment,
+            environment: environment,
             directory: workspace.directory,
             mode: command.mode
         )
@@ -136,5 +145,12 @@ final class AppState {
 
     func stop() {
         terminal.stop()
+    }
+
+    /// Clears the terminal and the report of the last run.
+    func clearRun() {
+        guard !terminal.isRunning else { return }
+        terminal.clear()
+        monitor.clear()
     }
 }
