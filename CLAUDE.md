@@ -35,5 +35,8 @@ and follows that CLI's discovery rules and history file format.
   folder. Hardened runtime stays on.
 - Unit tests use Swift Testing (`Ant FarmTests`). CI runs them on every push
   to `main`; the build can't run on Linux.
+- Before opening a PR, fetch the target branch and merge it in (or rebase a
+  branch only you use), so the PR opens with no conflicts and CI tests the
+  code as it will land.
 - Releases: push a `vX.Y.Z` tag; see `Documentation/RELEASING.md`.
 - Future work: `Documentation/ROADMAP.md`.
