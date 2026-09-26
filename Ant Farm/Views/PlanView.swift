@@ -43,7 +43,26 @@ struct PlanView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 PlanSummary(plan: plan, workspace: workspace)
-                ForEach(plan.plays) { play in
+                let running = plan.plays.filter(\.willRun)
+                let skipped = plan.plays.filter { !$0.willRun }
+                if running.isEmpty {
+                    Label(noMatchMessage, systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(Color.secondary.opacity(0.1), in: .rect(cornerRadius: 10))
+                }
+                ForEach(running) { play in
+                    PlanPlayCard(play: play)
+                }
+                if !running.isEmpty && !skipped.isEmpty {
+                    Text("Not Running")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                }
+                ForEach(skipped) { play in
                     PlanPlayCard(play: play)
                 }
                 if plan.hasDynamicIncludes || plan.taskCount > 0 {
@@ -67,6 +86,23 @@ struct PlanView: View {
             }
         }
     }
+
+    private var noMatchMessage: String {
+        let command = workspace.command()
+        let hasTags = !(command?.tags.isEmpty ?? true) || !(command?.skipTags.isEmpty ?? true)
+        let hasLimit = !(command?.limit.isEmpty ?? true)
+        switch (hasTags, hasLimit) {
+        case (true, true): return "No plays match the hosts and tags you've selected"
+        case (true, false): return "No plays match the tags you've selected"
+        case (false, true): return "No plays match the hosts you've selected"
+        case (false, false): return "No plays have hosts and tasks to run"
+        }
+    }
+}
+
+private extension RunPlan.Play {
+    /// Whether the play has hosts to run on and tasks to run there.
+    var willRun: Bool { !hosts.isEmpty && !tasks.isEmpty }
 }
 
 private struct PlanSummary: View {
@@ -239,7 +275,7 @@ private struct PlanPlayCard: View {
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(Color(nsColor: .separatorColor))
         }
-        .opacity(play.hosts.isEmpty ? 0.7 : 1)
+        .opacity(play.willRun ? 1 : 0.7)
     }
 }
 
@@ -271,12 +307,62 @@ private struct PlanTaskRow: View {
 
             Spacer(minLength: 8)
 
-            HStack(spacing: 4) {
-                ForEach(task.tags, id: \.self) { tag in
-                    Chip(text: tag)
+            TagStack(tags: task.tags)
+        }
+    }
+}
+
+/// A task's tags. More than a couple collapse into a stack that fans out on hover.
+private struct TagStack: View {
+    let tags: [String]
+    var collapseAfter = 2
+    @State private var isHovering = false
+
+    /// How far each tag behind the first peeks out, and how many of them show.
+    private let peek: CGFloat = 4
+    private let maxLayers = 3
+
+    var body: some View {
+        Group {
+            if tags.count <= collapseAfter || isHovering {
+                HStack(spacing: 4) {
+                    ForEach(tags, id: \.self) { tag in
+                        Chip(text: tag)
+                    }
                 }
+            } else {
+                stack
             }
-            .fixedSize()
+        }
+        .fixedSize()
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
+        .animation(.snappy(duration: 0.2), value: isHovering)
+    }
+
+    private var stack: some View {
+        let hidden = tags.count - 1
+        let layers = min(hidden, maxLayers)
+        return HStack(spacing: 6) {
+            Chip(text: tags[0])
+                .background(Color(nsColor: .controlBackgroundColor), in: .capsule)
+                .overlay(Capsule().strokeBorder(Color(nsColor: .separatorColor)))
+                .background(alignment: .leading) {
+                    ZStack {
+                        ForEach((1...layers).reversed(), id: \.self) { layer in
+                            Capsule()
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .overlay(Capsule().fill(Color.secondary.opacity(0.14)))
+                                .overlay(Capsule().strokeBorder(Color(nsColor: .separatorColor)))
+                                .offset(x: CGFloat(layer) * peek)
+                        }
+                    }
+                }
+                .padding(.trailing, CGFloat(layers) * peek)
+            Text("+\(hidden)")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
     }
 }
