@@ -102,6 +102,31 @@ struct InventoryContentsTests {
         #expect(contents.groups.map(\.name) == ["db", "prod", "ungrouped", "web"])
         #expect(contents.groups.first { $0.name == "prod" }?.hosts == ["db1", "web1", "web2"])
         #expect(contents.hosts == ["db1", "lonely", "web1", "web2"])
+        #expect(contents.roots == ["prod", "ungrouped"])
+        #expect(contents.groups.first { $0.name == "prod" }?.children == ["db", "web"])
+    }
+
+    @Test func buildsGroupTree() throws {
+        let json = """
+        {
+          "all": {"children": ["ungrouped", "production", "staging"]},
+          "production": {"children": ["proxy", "www"]},
+          "staging": {"children": ["www"]},
+          "proxy": {"hosts": ["proxy1"]},
+          "www": {"hosts": ["www1", "www2"]},
+          "ungrouped": {"hosts": ["lonely"]}
+        }
+        """
+        let contents = try InventoryContents.parse(Data(json.utf8))
+        let tree = contents.groupTree()
+        #expect(tree.map(\.group.name) == ["production", "staging", "ungrouped"])
+        #expect(tree[0].children.map(\.id) == [["production", "proxy"], ["production", "www"]])
+        #expect(tree[1].children.map(\.id) == [["staging", "www"]])
+
+        // A matching host keeps its group and the groups above it.
+        let filtered = contents.groupTree { $0.contains("proxy1") }
+        #expect(filtered.map(\.group.name) == ["production"])
+        #expect(filtered[0].children.map(\.group.name) == ["proxy"])
     }
 }
 

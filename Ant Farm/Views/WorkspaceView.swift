@@ -6,7 +6,8 @@
 import AppKit
 import SwiftUI
 
-/// The three-pane window for an open workspace: inventory, tags, and terminal.
+/// The three-pane window for an open workspace. The sidebar holds the folder, playbook,
+/// inventory, and hosts; then come the tags and the terminal. The toolbar holds only actions.
 struct WorkspaceView: View {
     @Environment(AppState.self) private var app
     @Bindable var workspace: Workspace
@@ -20,8 +21,9 @@ struct WorkspaceView: View {
         } detail: {
             TerminalPane(workspace: workspace)
         }
+        // The window keeps its title for the Window menu; the sidebar shows the folder instead.
         .navigationTitle(workspace.name)
-        .navigationSubtitle(workspace.directory.path.abbreviatingHome)
+        .toolbar(removing: .title)
         .toolbar { toolbar }
         .confirmationDialog(
             "Run in live mode?",
@@ -50,31 +52,6 @@ struct WorkspaceView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Menu {
-                FolderMenuItems()
-            } label: {
-                Label("Folder", systemImage: "folder")
-            }
-            .help("Open another folder")
-        }
-
-        ToolbarItem(placement: .primaryAction) {
-            Picker("Playbook", selection: $workspace.selectedPlaybookPath) {
-                if workspace.playbooks.isEmpty {
-                    Text("No Playbooks").tag(String?.none)
-                }
-                ForEach(workspace.playbooks) { playbook in
-                    Text(playbook.path).tag(Optional(playbook.path))
-                        .help(playbook.name ?? playbook.path)
-                }
-            }
-            .pickerStyle(.menu)
-            .frame(minWidth: 160)
-            .help(workspace.selectedPlaybook?.name ?? "Playbook")
-            .disabled(workspace.playbooks.isEmpty)
-        }
-
         ToolbarItem(placement: .primaryAction) {
             Picker("Mode", selection: $workspace.mode) {
                 Label("Check", systemImage: "checkmark.shield").tag(RunMode.check)
@@ -158,7 +135,7 @@ struct HistoryMenu: View {
     }
 }
 
-/// Open Folder, recent folders, and Reveal in Finder, shared by the toolbar and the File menu.
+/// Open Folder, recent folders, and Reveal in Finder, for the folder menu in the sidebar.
 struct FolderMenuItems: View {
     @Environment(AppState.self) private var app
 
