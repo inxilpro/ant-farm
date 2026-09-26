@@ -21,8 +21,8 @@ and follows that CLI's discovery rules and history file format.
 - `Ant Farm/Terminal/TerminalController.swift`: the only code that touches
   SwiftTerm. Keep it that way so the engine can be swapped for libghostty.
 - `Ant Farm/Views`: the three-pane `WorkspaceView` (a sidebar with the
-  folder, playbook, inventory, and group tree; tags; run), `WelcomeView`,
-  `SettingsView`. The toolbar holds only actions. `TerminalPane` shows
+  folder, group tree, then playbook and inventory; tags; run), `WelcomeView`,
+  `SettingsView`. The toolbar holds only actions and sits over the run pane. `TerminalPane` shows
   `PlanView` before a run, then `RunReportView`, with the terminal a click
   away.
 

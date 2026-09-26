@@ -6,8 +6,8 @@
 import AppKit
 import SwiftUI
 
-/// The three-pane window for an open workspace. The sidebar holds the folder, playbook,
-/// inventory, and hosts; then come the tags and the terminal. The toolbar holds only actions.
+/// The three-pane window for an open workspace. The sidebar holds the folder, hosts,
+/// playbook, and inventory; then come the tags and the terminal. The toolbar holds only actions.
 struct WorkspaceView: View {
     @Environment(AppState.self) private var app
     @Bindable var workspace: Workspace
@@ -19,12 +19,13 @@ struct WorkspaceView: View {
         } content: {
             TagsPane(workspace: workspace)
         } detail: {
+            // Attached to the detail column so the actions sit over the run, not the tags list.
             TerminalPane(workspace: workspace)
+                .toolbar { toolbar }
         }
         // The window keeps its title for the Window menu; the sidebar shows the folder instead.
         .navigationTitle(workspace.name)
         .toolbar(removing: .title)
-        .toolbar { toolbar }
         .confirmationDialog(
             "Run in live mode?",
             isPresented: Binding(
