@@ -15,6 +15,8 @@ struct InventoryPane: View {
     @State private var filter = ""
     /// Groups the user has folded away. Groups start out expanded.
     @State private var collapsed = Set<[String]>()
+    @SceneStorage("showsGroups") private var showsGroups = true
+    @SceneStorage("showsHosts") private var showsHosts = true
 
     var body: some View {
         List {
@@ -24,7 +26,7 @@ struct InventoryPane: View {
         }
         .listStyle(.sidebar)
         .overlay { overlay }
-        .safeAreaInset(edge: .top, spacing: 0) {
+        .safeAreaBar(edge: .top, spacing: 0) {
             VStack(spacing: 10) {
                 FolderHeader(workspace: workspace)
                 FilterField(prompt: "Filter hosts", target: .hosts, text: $filter)
@@ -52,14 +54,14 @@ struct InventoryPane: View {
         let hosts = workspace.contents.hosts.filter(matches)
 
         if !tree.isEmpty {
-            Section("Groups") {
+            Section("Groups", isExpanded: expanded($showsGroups)) {
                 ForEach(tree) { node in
                     GroupTreeRow(node: node, workspace: workspace, collapsed: $collapsed, expandAll: !filter.isEmpty)
                 }
             }
         }
         if !hosts.isEmpty {
-            Section("Hosts") {
+            Section("Hosts", isExpanded: expanded($showsHosts)) {
                 ForEach(hosts, id: \.self) { host in
                     SelectionRow(
                         title: host,
@@ -72,6 +74,14 @@ struct InventoryPane: View {
                 }
             }
         }
+    }
+
+    /// While filtering, a section shows its matches even if it's collapsed.
+    private func expanded(_ isExpanded: Binding<Bool>) -> Binding<Bool> {
+        Binding(
+            get: { isExpanded.wrappedValue || !filter.isEmpty },
+            set: { isExpanded.wrappedValue = $0 }
+        )
     }
 
     @ViewBuilder

@@ -27,7 +27,7 @@ struct TagsPane: View {
             }
         }
         .overlay { overlay(filteredEmpty: tags.isEmpty) }
-        .safeAreaInset(edge: .top, spacing: 0) {
+        .safeAreaBar(edge: .top, spacing: 0) {
             FilterField(prompt: "Filter tags", target: .tags, text: $filter)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)

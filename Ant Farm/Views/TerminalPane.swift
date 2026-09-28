@@ -85,7 +85,7 @@ private struct CommandHeader: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             StatusBadge(status: terminal.status, mode: mode, startedAt: terminal.startedAt, finishedAt: terminal.finishedAt)
 
             if let argv {
