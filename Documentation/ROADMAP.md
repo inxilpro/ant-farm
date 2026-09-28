@@ -11,14 +11,12 @@
 
 ## Workflow
 
-- Multiple windows, one folder each.
 - Several runs at once, in tabs.
-- Notifications when a run finishes in the background (it bounces the Dock icon today).
-- Keyboard navigation in the inventory and tag lists (arrow keys and space),
-  with multiple selection so one right-click includes or excludes several rows.
-- ⌘F to focus the host filter. The Edit > Find item already claims ⌘F, so
-  this needs care.
-- A customizable toolbar (`.toolbar(id:)`).
+- Drag hosts, tags, and the command out as text, and the run report as a
+  file.
+- Keyboard control of the host and tag lists that keeps click-to-toggle
+  (list selection was tried and dropped: a click should toggle a row, not
+  select it).
 - Show which tasks each tag covers.
 - Saved presets (named sets of hosts, tags, and extra arguments).
 - Vault support: pick a vault password file or prompt through the Keychain.

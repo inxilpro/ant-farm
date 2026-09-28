@@ -7,53 +7,74 @@ import AppKit
 import Foundation
 import Observation
 
-/// App-wide state: the open workspace, the located Ansible tools, and the run in progress.
+/// App-wide state: the located Ansible tools, recent folders, and the open windows.
 @Observable
 final class AppState {
-    private(set) var workspace: Workspace?
     private(set) var tools: AnsibleTools?
     private(set) var isLocatingTools = true
     private(set) var recentDirectories: [URL] = []
-
-    let terminal = TerminalController()
-    /// The native report of the current run, fed by the bundled callback plugin.
-    let monitor = RunMonitor()
-
-    /// A live run waiting for the user to confirm it.
-    var pendingLiveRun: AnsibleCommand?
+    /// Every open window, whether or not it shows a folder yet.
+    private(set) var sessions: [WindowSession] = []
 
     @ObservationIgnored private var environment: [String: String]?
     @ObservationIgnored private var started = false
+    @ObservationIgnored private var startTask: Task<Void, Never>?
+    @ObservationIgnored private var restoredLastFolder = false
     /// A folder Finder or the Dock asked to open before `start()` finished.
     @ObservationIgnored private var pendingOpen: URL?
-    /// Shows the main window, which may have been closed. Set by `RootView`.
-    @ObservationIgnored var showWindow: (() -> Void)?
+    /// Opens a new window for a folder. Set by `RootView`.
+    @ObservationIgnored var openWindow: ((URL) -> Void)?
+    /// Set once the app is quitting, when windows go away without the user closing them.
+    @ObservationIgnored var isTerminating = false
+
+    var isRunning: Bool { sessions.contains { $0.terminal.isRunning } }
 
     init() {
         recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
-        _ = NotificationCenter.default.addObserver(forName: .antFarmRunFinished, object: terminal, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.monitor.finish()
-            }
+    }
+
+    func register(_ session: WindowSession) {
+        session.app = self
+        if !sessions.contains(where: { $0 === session }) {
+            sessions.append(session)
         }
     }
 
-    /// Finds Ansible and reopens the last workspace. Returns false when there's no workspace to open.
-    @discardableResult
-    func start() async -> Bool {
-        await locateTools()
-        started = true
-        if let url = pendingOpen {
-            pendingOpen = nil
-            await open(url)
-            return true
+    func unregister(_ session: WindowSession) {
+        sessions.removeAll { $0 === session }
+        // Closing a folder's window means not reopening it next launch. Quitting keeps it.
+        guard !isTerminating, let directory = session.directory,
+              UserDefaults.standard.string(forKey: SettingsKey.lastDirectory) == directory.path else { return }
+        if let other = sessions.lazy.compactMap(\.directory).first {
+            UserDefaults.standard.set(other.path, forKey: SettingsKey.lastDirectory)
+        } else {
+            UserDefaults.standard.removeObject(forKey: SettingsKey.lastDirectory)
         }
-        if let path = UserDefaults.standard.string(forKey: SettingsKey.lastDirectory),
-           FileManager.default.fileExists(atPath: path) {
-            await open(URL(fileURLWithPath: path))
-            return true
+    }
+
+    /// Finds Ansible once per launch. Every window waits on this before loading its folder.
+    func start() async {
+        if startTask == nil {
+            startTask = Task {
+                await locateTools()
+                started = true
+                if let url = pendingOpen {
+                    pendingOpen = nil
+                    restoredLastFolder = true
+                    open(url)
+                }
+            }
         }
-        return false
+        await startTask?.value
+    }
+
+    /// The folder to reopen in the first empty window of a launch, when the system restored none.
+    func folderToRestore() -> URL? {
+        guard !restoredLastFolder, pendingOpen == nil, !sessions.contains(where: { $0.directory != nil }) else { return nil }
+        restoredLastFolder = true
+        guard let path = UserDefaults.standard.string(forKey: SettingsKey.lastDirectory),
+              FileManager.default.fileExists(atPath: path) else { return nil }
+        return URL(fileURLWithPath: path)
     }
 
     /// Opens a folder dropped on the Dock icon, chosen with Open With, or picked from the Dock's recent items.
@@ -62,7 +83,30 @@ final class AppState {
             pendingOpen = url
             return
         }
-        Task { await open(url) }
+        open(url)
+    }
+
+    /// Shows a folder: in the window that already has it, else in an empty window, else in a new one.
+    func open(_ url: URL, preferring requester: WindowSession? = nil) {
+        let url = url.folderURL
+        if let existing = sessions.first(where: { $0.directory == url }) {
+            existing.bringToFront()
+        } else if let empty = requester.flatMap({ $0.directory == nil ? $0 : nil })
+                    ?? sessions.first(where: { $0.directory == nil }) {
+            empty.show(url)
+        } else {
+            openWindow?(url)
+        }
+    }
+
+    /// Records a folder a window opened, for Open Recent and the next launch.
+    func noteOpened(_ directory: URL) {
+        UserDefaults.standard.set(directory.path, forKey: SettingsKey.lastDirectory)
+        var recents = AppDefaults.recentDirectories.filter { $0 != directory.path }
+        recents.insert(directory.path, at: 0)
+        AppDefaults.recentDirectories = recents
+        recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
+        NSDocumentController.shared.noteNewRecentDocumentURL(directory)
     }
 
     func locateTools() async {
@@ -73,32 +117,9 @@ final class AppState {
         }
         let override = UserDefaults.standard.string(forKey: SettingsKey.ansibleDirectory)
         tools = AnsibleTools.locate(environment: environment ?? [:], overrideDirectory: override)
-        workspace?.tools = tools
-    }
-
-    func open(_ directory: URL) async {
-        let directory = directory.standardizedFileURL
-        UserDefaults.standard.set(directory.path, forKey: SettingsKey.lastDirectory)
-        var recents = AppDefaults.recentDirectories.filter { $0 != directory.path }
-        recents.insert(directory.path, at: 0)
-        AppDefaults.recentDirectories = recents
-        recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
-
-        let workspace = Workspace(directory: directory, tools: tools)
-        self.workspace = workspace
-        showWindow?()
-        NSDocumentController.shared.noteNewRecentDocumentURL(directory)
-        await workspace.reload()
-    }
-
-    func reload() async {
-        await locateTools()
-        await workspace?.reload()
-    }
-
-    func closeWorkspace() {
-        workspace = nil
-        UserDefaults.standard.removeObject(forKey: SettingsKey.lastDirectory)
+        for session in sessions {
+            session.workspace?.tools = tools
+        }
     }
 
     func removeRecent(_ url: URL) {
@@ -112,88 +133,31 @@ final class AppState {
         recentDirectories = []
     }
 
-    /// Shows an open panel for choosing a workspace folder.
-    func chooseDirectory() {
+    func setTerminalFontSize(_ size: Double) {
+        for session in sessions {
+            session.terminal.setFontSize(size)
+        }
+    }
+
+    /// Shows an open panel for a folder, as a sheet on the requesting window when there is one.
+    func chooseDirectory(for session: WindowSession? = nil) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.prompt = "Open"
         panel.message = "Choose a folder that contains your Ansible inventory and playbooks."
-        if let current = workspace?.directory ?? recentDirectories.first {
+        if let current = session?.directory ?? recentDirectories.first {
             panel.directoryURL = current
         }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        Task { await open(url) }
-    }
-
-    // MARK: Running
-
-    var canRun: Bool {
-        tools != nil && workspace?.selectedPlaybook != nil && !terminal.isRunning
-    }
-
-    /// Runs the current selections, asking first when it's a live run.
-    func runCurrent(mode: RunMode? = nil) {
-        let diff = UserDefaults.standard.bool(forKey: SettingsKey.alwaysDiff)
-        guard let command = workspace?.command(mode: mode, diff: diff) else { return }
-        run(command)
-    }
-
-    func run(_ command: AnsibleCommand, confirmed: Bool = false) {
-        guard !terminal.isRunning else { return }
-        if command.mode == .live && !confirmed && UserDefaults.standard.bool(forKey: SettingsKey.confirmLiveRuns) {
-            pendingLiveRun = command
-            return
+        let handler = { [weak self] (response: NSApplication.ModalResponse) in
+            guard response == .OK, let url = panel.url else { return }
+            self?.open(url, preferring: session)
         }
-        guard let workspace, let tools else { return }
-
-        let argv = command.argv
-        if UserDefaults.standard.bool(forKey: SettingsKey.saveHistory) {
-            workspace.recordRun(argv)
+        if let window = session?.window {
+            panel.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            panel.begin(completionHandler: handler)
         }
-        var environment = tools.terminalEnvironment
-        environment.merge(monitor.start(argv: argv, callbackPluginPaths: workspace.callbackPluginPaths)) { $1 }
-        terminal.run(
-            argv: argv,
-            executable: tools.playbook,
-            environment: environment,
-            directory: workspace.directory,
-            mode: command.mode
-        )
-    }
-
-    func rerun(_ argv: [String], mode: RunMode) {
-        guard var command = AnsibleCommand(argv: argv) else { return }
-        command.mode = mode
-        workspace?.apply(command)
-        run(command)
-    }
-
-    func stop() {
-        terminal.stop()
-    }
-
-    /// The command the run pane shows: the run in progress (or just finished), else the next one.
-    var displayedCommand: [String]? {
-        if terminal.status != .idle, let command = terminal.command {
-            return command
-        }
-        let diff = UserDefaults.standard.bool(forKey: SettingsKey.alwaysDiff)
-        return workspace?.command(diff: diff)?.argv
-    }
-
-    /// The terminal takes over when Ansible needs input, or when there's no report to show.
-    var isTerminalForced: Bool {
-        guard terminal.status != .idle else { return false }
-        if monitor.report.isWaitingForInput { return true }
-        return !monitor.report.hasEvents && (!terminal.isRunning || !monitor.isAvailable)
-    }
-
-    /// Clears the terminal and the report of the last run.
-    func clearRun() {
-        guard !terminal.isRunning else { return }
-        terminal.clear()
-        monitor.clear()
     }
 }

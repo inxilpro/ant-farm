@@ -15,6 +15,8 @@ struct InventoryPane: View {
     @State private var filter = ""
     /// Groups the user has folded away. Groups start out expanded.
     @State private var collapsed = Set<[String]>()
+    @SceneStorage("showsGroups") private var showsGroups = true
+    @SceneStorage("showsHosts") private var showsHosts = true
 
     var body: some View {
         List {
@@ -24,10 +26,10 @@ struct InventoryPane: View {
         }
         .listStyle(.sidebar)
         .overlay { overlay }
-        .safeAreaInset(edge: .top, spacing: 0) {
+        .safeAreaBar(edge: .top, spacing: 0) {
             VStack(spacing: 10) {
                 FolderHeader(workspace: workspace)
-                FilterField(prompt: "Filter hosts", text: $filter)
+                FilterField(prompt: "Filter hosts", target: .hosts, text: $filter)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -52,25 +54,34 @@ struct InventoryPane: View {
         let hosts = workspace.contents.hosts.filter(matches)
 
         if !tree.isEmpty {
-            Section("Groups") {
+            Section("Groups", isExpanded: expanded($showsGroups)) {
                 ForEach(tree) { node in
                     GroupTreeRow(node: node, workspace: workspace, collapsed: $collapsed, expandAll: !filter.isEmpty)
                 }
             }
         }
         if !hosts.isEmpty {
-            Section("Hosts") {
+            Section("Hosts", isExpanded: expanded($showsHosts)) {
                 ForEach(hosts, id: \.self) { host in
                     SelectionRow(
                         title: host,
                         systemImage: "desktopcomputer",
-                        state: workspace.limit.state(of: host)
+                        state: workspace.limit.state(of: host),
+                        inheritedState: workspace.contents.coveringState(ofHost: host, in: workspace.limit)
                     ) { state in
                         workspace.changeSelections(state.actionName, undoManager: undoManager) { $0.limit.set(host, to: state) }
                     }
                 }
             }
         }
+    }
+
+    /// While filtering, a section shows its matches even if it's collapsed.
+    private func expanded(_ isExpanded: Binding<Bool>) -> Binding<Bool> {
+        Binding(
+            get: { isExpanded.wrappedValue || !filter.isEmpty },
+            set: { isExpanded.wrappedValue = $0 }
+        )
     }
 
     @ViewBuilder
@@ -106,6 +117,8 @@ private struct GroupTreeRow: View {
     @Binding var collapsed: Set<[String]>
     /// While filtering, show every match instead of honoring folded groups.
     let expandAll: Bool
+    /// An included or excluded group above this one, which covers it.
+    var inheritedState: SelectionState?
 
     var body: some View {
         if node.children.isEmpty {
@@ -113,7 +126,7 @@ private struct GroupTreeRow: View {
         } else {
             DisclosureGroup(isExpanded: isExpanded) {
                 ForEach(node.children) { child in
-                    GroupTreeRow(node: child, workspace: workspace, collapsed: $collapsed, expandAll: expandAll)
+                    GroupTreeRow(node: child, workspace: workspace, collapsed: $collapsed, expandAll: expandAll, inheritedState: coveringState)
                 }
             } label: {
                 row
@@ -128,10 +141,26 @@ private struct GroupTreeRow: View {
             subtitle: "\(group.hosts.count)",
             systemImage: "square.stack.3d.up",
             help: group.hosts.joined(separator: ", "),
-            state: workspace.limit.state(of: group.name)
+            state: workspace.limit.state(of: group.name),
+            inheritedState: inheritedState
         ) { state in
-            workspace.changeSelections(state.actionName, undoManager: undoManager) { $0.limit.set(group.name, to: state) }
+            workspace.changeSelections(state.actionName, undoManager: undoManager) { workspace in
+                workspace.limit.set(group.name, to: state)
+                // The group now covers its subgroups and hosts, so they start over unchecked when it's cleared.
+                if state != .none {
+                    for name in workspace.contents.subgroups(of: group.name).union(group.hosts) {
+                        workspace.limit.set(name, to: .none)
+                    }
+                }
+            }
         }
+    }
+
+    /// The state this group passes down to its subgroups.
+    private var coveringState: SelectionState? {
+        if let inheritedState { return inheritedState }
+        let own = workspace.limit.state(of: node.group.name)
+        return own == .none ? nil : own
     }
 
     private var isExpanded: Binding<Bool> {
@@ -200,7 +229,7 @@ private struct PlaybookPickers: View {
             }
             .frame(maxWidth: .infinity)
             .disabled(workspace.playbooks.isEmpty)
-            .help(workspace.selectedPlaybook.map { "Playbook: \($0.name)" } ?? "Playbook")
+            .help(workspace.selectedPlaybook.map { "Playbook: " + ($0.name ?? $0.path) } ?? "Playbook")
 
             Picker("Inventory", selection: $workspace.selectedInventoryID) {
                 ForEach(workspace.inventories) { source in
@@ -212,6 +241,7 @@ private struct PlaybookPickers: View {
             .help("Inventory: " + (workspace.selectedInventory?.hint ?? workspace.selectedInventory?.label ?? "Ansible default"))
         }
         .labelsHidden()
+        .buttonSizing(.flexible)
     }
 }
 

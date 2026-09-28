@@ -27,8 +27,8 @@ struct TagsPane: View {
             }
         }
         .overlay { overlay(filteredEmpty: tags.isEmpty) }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FilterField(prompt: "Filter tags", text: $filter)
+        .safeAreaBar(edge: .top, spacing: 0) {
+            FilterField(prompt: "Filter tags", target: .tags, text: $filter)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
         }
@@ -46,8 +46,11 @@ struct TagsPane: View {
             .padding(.vertical, 8)
             .background(.bar)
         }
-        .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+        .navigationSplitViewColumnWidth(min: 180, ideal: TagColumn.idealWidth(for: workspace.tags) ?? 220)
+        // The column is laid out before the tags load, so widen it once they arrive.
+        .background(ColumnWidener(width: TagColumn.idealWidth(for: workspace.tags)))
     }
+
 
     @ViewBuilder
     private func overlay(filteredEmpty: Bool) -> some View {
@@ -76,5 +79,66 @@ struct TagsPane: View {
         } else if filteredEmpty {
             ContentUnavailableView.search(text: filter)
         }
+    }
+}
+
+/// Sizes the tags column to its tags.
+enum TagColumn {
+    /// The row's circle, tag icon, padding, and scroller.
+    private static let chrome: CGFloat = 96
+
+    /// Wide enough for nine in ten tags, so one or two long ones don't widen the column much.
+    static func idealWidth(for tags: [String]) -> CGFloat? {
+        guard !tags.isEmpty else { return nil }
+        let font = NSFont.preferredFont(forTextStyle: .body)
+        let widths = tags.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.sorted()
+        let fit = widths[Int(Double(widths.count - 1) * 0.9)]
+        return min(max(fit + chrome, 180), 360).rounded(.up)
+    }
+}
+
+/// Widens the split view column it sits in to `width`, if it's narrower, once the tags load.
+///
+/// SwiftUI only offers an ideal column width, which it applies before the tags load and
+/// which the split view's saved width then overrides.
+private struct ColumnWidener: NSViewRepresentable {
+    let width: CGFloat?
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        guard let width, !context.coordinator.didStart else { return }
+        context.coordinator.didStart = true
+        Task { @MainActor in
+            // The view may not be in the window yet, and the split view restores its saved
+            // widths after the first layout, so keep the column wide for a moment.
+            for _ in 0..<30 {
+                Self.widen(columnOf: view, to: width)
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+        }
+    }
+
+    private static func widen(columnOf view: NSView, to width: CGFloat) {
+        var ancestor = view.superview
+        while let current = ancestor, !(current is NSSplitView) {
+            ancestor = current.superview
+        }
+        guard let splitView = ancestor as? NSSplitView else { return }
+        let columns = splitView.arrangedSubviews
+        guard let index = columns.firstIndex(where: { view.isDescendant(of: $0) }),
+              index < columns.count - 1 else { return }
+        // A column's view reaches under the floating sidebar, so measure only what shows.
+        let leading = index > 0 && !splitView.isSubviewCollapsed(columns[index - 1]) ? columns[index - 1].frame.maxX : columns[index].frame.minX
+        let visible = columns[index].frame.maxX - leading
+        if visible > 0 && visible < width {
+            splitView.setPosition(columns[index].frame.maxX + width - visible, ofDividerAt: index)
+        }
+    }
+
+    final class Coordinator {
+        var didStart = false
     }
 }

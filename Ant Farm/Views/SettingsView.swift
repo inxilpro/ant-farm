@@ -72,9 +72,16 @@ private struct GeneralSettings: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.message = "Choose the folder that contains ansible-playbook."
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        ansibleDirectory = url.path
-        relocate()
+        let handler = { (response: NSApplication.ModalResponse) in
+            guard response == .OK, let url = panel.url else { return }
+            ansibleDirectory = url.path
+            relocate()
+        }
+        if let window = NSApp.keyWindow {
+            panel.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            panel.begin(completionHandler: handler)
+        }
     }
 }
 
@@ -90,7 +97,7 @@ private struct TerminalSettings: View {
         }
         .formStyle(.grouped)
         .onChange(of: fontSize) { _, size in
-            app.terminal.setFontSize(size)
+            app.setTerminalFontSize(size)
         }
     }
 }

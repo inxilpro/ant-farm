@@ -319,20 +319,31 @@ private struct TagStack: View {
     @State private var isHovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// How far each tag behind the first peeks out, and how many of them show.
-    private let peek: CGFloat = 4
-    private let maxLayers = 3
-
     var body: some View {
         Group {
-            if tags.count <= collapseAfter || isHovering {
+            if tags.count <= collapseAfter {
                 HStack(spacing: 4) {
                     ForEach(tags, id: \.self) { tag in
                         Chip(text: tag)
                     }
                 }
             } else {
-                stack
+                TagFanLayout(fanned: isHovering ? 1 : 0) {
+                    ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
+                        Chip(text: tag)
+                            .background(Color(nsColor: .controlBackgroundColor), in: .capsule)
+                            // Stacked, the tags behind the first are shaded so their edges show.
+                            .overlay(Capsule().fill(Color.secondary.opacity(index == 0 || isHovering ? 0 : 0.14)))
+                            .overlay(Capsule().strokeBorder(Color(nsColor: .separatorColor)))
+                            // The first tag sits on top of the stack.
+                            .zIndex(Double(tags.count - index))
+                    }
+                    Text("+\(tags.count - 1)")
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .opacity(isHovering ? 0 : 1)
+                }
             }
         }
         .fixedSize()
@@ -342,32 +353,71 @@ private struct TagStack: View {
         .accessibilityLabel(tags.count == 1 ? "Tag" : "Tags")
         .accessibilityValue(tags.joined(separator: ", "))
         .onHover { isHovering = $0 }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: isHovering)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: isHovering)
+    }
+}
+
+/// Lays tags out as a stack, each peeking out behind the first, or fanned out in a row
+/// that still overlaps a little. `fanned` runs from 0 to 1, so the change animates.
+/// The last subview is the "+N" count, which follows the stack's trailing edge.
+private struct TagFanLayout: Layout, Animatable {
+    var fanned: CGFloat
+
+    var animatableData: CGFloat {
+        get { fanned }
+        set { fanned = newValue }
     }
 
-    private var stack: some View {
-        let hidden = tags.count - 1
-        let layers = min(hidden, maxLayers)
-        return HStack(spacing: 6) {
-            Chip(text: tags[0])
-                .background(Color(nsColor: .controlBackgroundColor), in: .capsule)
-                .overlay(Capsule().strokeBorder(Color(nsColor: .separatorColor)))
-                .background(alignment: .leading) {
-                    ZStack {
-                        ForEach((1...layers).reversed(), id: \.self) { layer in
-                            Capsule()
-                                .fill(Color(nsColor: .controlBackgroundColor))
-                                .overlay(Capsule().fill(Color.secondary.opacity(0.14)))
-                                .overlay(Capsule().strokeBorder(Color(nsColor: .separatorColor)))
-                                .offset(x: CGFloat(layer) * peek)
-                        }
-                    }
-                }
-                .padding(.trailing, CGFloat(layers) * peek)
-            Text("+\(hidden)")
-                .font(.caption)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
+    /// How far each tag behind the first peeks out, and how many of them show.
+    private let peek: CGFloat = 4
+    private let maxLayers = 3
+    /// How much neighbouring tags overlap when fanned out.
+    private let overlap: CGFloat = 3
+    private let countSpacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let frames = frames(for: subviews)
+        let width = frames.map(\.maxX).max() ?? 0
+        let height = frames.map(\.height).max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (subview, frame) in zip(subviews, frames(for: subviews)) {
+            // Pinned by the trailing edge: a tag narrower than the first still peeks out behind it.
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.maxX, y: bounds.midY),
+                anchor: .trailing,
+                proposal: ProposedViewSize(frame.size)
+            )
         }
+    }
+
+    private func frames(for subviews: Subviews) -> [CGRect] {
+        guard subviews.count > 1 else { return [] }
+        let chips = subviews.dropLast().map { $0.sizeThatFits(.unspecified) }
+        let count = subviews[subviews.count - 1].sizeThatFits(.unspecified)
+        let front = chips[0].width
+
+        var frames: [CGRect] = []
+        var fannedX: CGFloat = 0
+        for (index, size) in chips.enumerated() {
+            // Stacked, a tag behind the first is at most the first's width and shows only its edge.
+            let layer = CGFloat(min(index, maxLayers))
+            let stackedWidth = index == 0 ? size.width : front
+            let stackedX = layer * peek
+            let x = stackedX + (fannedX - stackedX) * fanned
+            let width = stackedWidth + (size.width - stackedWidth) * fanned
+            frames.append(CGRect(x: x, y: 0, width: width, height: size.height))
+            fannedX += size.width - overlap
+        }
+
+        let stackEnd = front + CGFloat(min(chips.count - 1, maxLayers)) * peek
+        let fannedEnd = fannedX + overlap
+        let countX = stackEnd + countSpacing
+        // Fanned out, the count has faded and the row ends at the last tag.
+        let end = (countX + count.width) + (fannedEnd - (countX + count.width)) * fanned
+        frames.append(CGRect(x: min(countX, end - count.width), y: 0, width: count.width, height: count.height))
+        return frames
     }
 }

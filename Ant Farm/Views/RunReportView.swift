@@ -137,7 +137,7 @@ private struct RecapView: View {
                 Text(isFinal ? "Recap" : "Progress")
                     .font(.headline)
                 Spacer()
-                Text(headline)
+                Text(RunReport.headline(for: recap))
                     .foregroundStyle(.secondary)
             }
 
@@ -195,14 +195,6 @@ private struct RecapView: View {
         Column(title: "Ignored", keyPath: \.ignored, color: .primary),
     ]
 
-    private var headline: String {
-        let failed = recap.count(where: { $0.stats.failed > 0 || $0.stats.unreachable > 0 })
-        let changed = recap.count(where: { $0.stats.changed > 0 })
-        var parts = ["\(recap.count) \(recap.count == 1 ? "host" : "hosts")"]
-        if changed > 0 { parts.append("\(changed) changed") }
-        if failed > 0 { parts.append("\(failed) failed") }
-        return parts.joined(separator: " · ")
-    }
 }
 
 // MARK: Tasks

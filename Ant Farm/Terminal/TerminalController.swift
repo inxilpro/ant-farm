@@ -39,13 +39,21 @@ final class TerminalController {
     @ObservationIgnored private var keyMonitor: Any?
 
     init() {
-        // Ctrl-C force stops a run, wherever focus is (including the terminal itself).
+        // Ctrl-C force stops a run, wherever focus is in its window (including the terminal itself).
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            MainActor.assumeIsolated {
-                guard let self, self.isRunning, Self.isControlC(event) else { return event }
+            let stopped = MainActor.assumeIsolated {
+                guard let self, self.isRunning, Self.isControlC(event),
+                      let window = event.window, window === self.view.window else { return false }
                 self.forceStop()
-                return nil
+                return true
             }
+            return stopped ? nil : event
+        }
+    }
+
+    isolated deinit {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
         }
     }
 
