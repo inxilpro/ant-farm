@@ -125,21 +125,21 @@ final class WindowSession {
 
     /// Runs the current selections, asking first when it's a live run.
     func runCurrent(mode: RunMode? = nil) {
-        let diff = UserDefaults.standard.bool(forKey: SettingsKey.alwaysDiff)
+        let diff = AppDefaults.store.bool(forKey: SettingsKey.alwaysDiff)
         guard let command = workspace?.command(mode: mode, diff: diff) else { return }
         run(command)
     }
 
     func run(_ command: AnsibleCommand, confirmed: Bool = false) {
         guard !terminal.isRunning else { return }
-        if command.mode == .live && !confirmed && UserDefaults.standard.bool(forKey: SettingsKey.confirmLiveRuns) {
+        if command.mode == .live && !confirmed && AppDefaults.store.bool(forKey: SettingsKey.confirmLiveRuns) {
             pendingLiveRun = command
             return
         }
         guard let workspace, let tools = app?.tools else { return }
 
         let argv = command.argv
-        if UserDefaults.standard.bool(forKey: SettingsKey.saveHistory) {
+        if AppDefaults.store.bool(forKey: SettingsKey.saveHistory) {
             workspace.recordRun(argv)
         }
         var environment = tools.terminalEnvironment
@@ -169,7 +169,7 @@ final class WindowSession {
         if terminal.status != .idle, let command = terminal.command {
             return command
         }
-        let diff = UserDefaults.standard.bool(forKey: SettingsKey.alwaysDiff)
+        let diff = AppDefaults.store.bool(forKey: SettingsKey.alwaysDiff)
         return workspace?.command(diff: diff)?.argv
     }
 

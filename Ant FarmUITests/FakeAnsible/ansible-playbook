@@ -1,0 +1,33 @@
+#!/bin/sh
+# A stand-in for ansible-playbook. It answers --list-tags and --list-tasks with canned
+# output, and otherwise plays back events.jsonl as if Ant Farm's callback plugin wrote it.
+# ANTFARM_FAKE_RUN_SECONDS keeps a run going that long before it finishes.
+here=$(dirname "$0")
+for arg in "$@"; do
+  case "$arg" in
+    --list-tags) mode=tags ;;
+    --list-tasks) mode=plan ;;
+  esac
+done
+
+if [ "$mode" = tags ]; then
+  cat "$here/tags.txt"
+  exit 0
+fi
+if [ "$mode" = plan ]; then
+  cat "$here/plan.txt"
+  exit 0
+fi
+
+echo "PLAY [Web servers] ***"
+while IFS= read -r line; do
+  case "$line" in
+    *'"event": "stats"'*) sleep "${ANTFARM_FAKE_RUN_SECONDS:-0}" ;;
+  esac
+  if [ -n "$ANTFARM_EVENTS" ]; then
+    printf '%s\n' "$line" >> "$ANTFARM_EVENTS"
+  fi
+done < "$here/events.jsonl"
+echo "PLAY RECAP ***"
+echo "web1 : ok=2 changed=1"
+echo "web2 : ok=2 changed=1"

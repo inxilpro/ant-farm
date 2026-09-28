@@ -96,6 +96,7 @@ private struct CommandHeader: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .help(ShellQuoting.format(argv))
+                    .accessibilityIdentifier("command")
 
                 Button("Copy Command", systemImage: "doc.on.doc") {
                     copyCommand(argv)

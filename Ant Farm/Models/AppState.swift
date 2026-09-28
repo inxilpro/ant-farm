@@ -44,11 +44,11 @@ final class AppState {
         sessions.removeAll { $0 === session }
         // Closing a folder's window means not reopening it next launch. Quitting keeps it.
         guard !isTerminating, let directory = session.directory,
-              UserDefaults.standard.string(forKey: SettingsKey.lastDirectory) == directory.path else { return }
+              AppDefaults.store.string(forKey: SettingsKey.lastDirectory) == directory.path else { return }
         if let other = sessions.lazy.compactMap(\.directory).first {
-            UserDefaults.standard.set(other.path, forKey: SettingsKey.lastDirectory)
+            AppDefaults.store.set(other.path, forKey: SettingsKey.lastDirectory)
         } else {
-            UserDefaults.standard.removeObject(forKey: SettingsKey.lastDirectory)
+            AppDefaults.store.removeObject(forKey: SettingsKey.lastDirectory)
         }
     }
 
@@ -72,7 +72,7 @@ final class AppState {
     func folderToRestore() -> URL? {
         guard !restoredLastFolder, pendingOpen == nil, !sessions.contains(where: { $0.directory != nil }) else { return nil }
         restoredLastFolder = true
-        guard let path = UserDefaults.standard.string(forKey: SettingsKey.lastDirectory),
+        guard let path = AppDefaults.store.string(forKey: SettingsKey.lastDirectory),
               FileManager.default.fileExists(atPath: path) else { return nil }
         return URL(fileURLWithPath: path)
     }
@@ -101,21 +101,25 @@ final class AppState {
 
     /// Records a folder a window opened, for Open Recent and the next launch.
     func noteOpened(_ directory: URL) {
-        UserDefaults.standard.set(directory.path, forKey: SettingsKey.lastDirectory)
+        AppDefaults.store.set(directory.path, forKey: SettingsKey.lastDirectory)
         var recents = AppDefaults.recentDirectories.filter { $0 != directory.path }
         recents.insert(directory.path, at: 0)
         AppDefaults.recentDirectories = recents
         recentDirectories = AppDefaults.recentDirectories.map { URL(fileURLWithPath: $0) }
-        NSDocumentController.shared.noteNewRecentDocumentURL(directory)
+        // The system's recent items outlive the UI tests' own defaults.
+        if !AppDefaults.isUITesting {
+            NSDocumentController.shared.noteNewRecentDocumentURL(directory)
+        }
     }
 
     func locateTools() async {
         isLocatingTools = true
         defer { isLocatingTools = false }
         if environment == nil {
-            environment = await LoginShell.environment()
+            // UI tests point Ant Farm at a fake Ansible, so the login shell (slow, and different on every Mac) isn't needed.
+            environment = AppDefaults.isUITesting ? ProcessInfo.processInfo.environment : await LoginShell.environment()
         }
-        let override = UserDefaults.standard.string(forKey: SettingsKey.ansibleDirectory)
+        let override = AppDefaults.store.string(forKey: SettingsKey.ansibleDirectory)
         tools = AnsibleTools.locate(environment: environment ?? [:], overrideDirectory: override)
         for session in sessions {
             session.workspace?.tools = tools
@@ -129,7 +133,9 @@ final class AppState {
 
     func clearRecents() {
         AppDefaults.recentDirectories = []
-        NSDocumentController.shared.clearRecentDocuments(nil)
+        if !AppDefaults.isUITesting {
+            NSDocumentController.shared.clearRecentDocuments(nil)
+        }
         recentDirectories = []
     }
 

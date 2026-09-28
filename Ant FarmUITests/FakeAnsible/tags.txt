@@ -1,0 +1,5 @@
+
+playbook: site.yml
+
+  play #1 (web): Web servers	TAGS: []
+      TASK TAGS: [deploy, nginx, setup]

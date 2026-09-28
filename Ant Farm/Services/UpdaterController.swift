@@ -25,7 +25,7 @@ final class UpdaterController {
         #if DEBUG
         false
         #else
-        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+        !AppDefaults.isRunningTests && !AppDefaults.isUITesting
         #endif
     }
 

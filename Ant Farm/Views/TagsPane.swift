@@ -135,7 +135,7 @@ private struct PaneSizer: NSViewRepresentable {
         private var isSizing = false
 
         private var savedWidth: CGFloat? {
-            let width = UserDefaults.standard.double(forKey: SettingsKey.tagsPaneWidth)
+            let width = AppDefaults.store.double(forKey: SettingsKey.tagsPaneWidth)
             return width > 0 ? width : nil
         }
 
@@ -175,7 +175,7 @@ private struct PaneSizer: NSViewRepresentable {
                 guard note.userInfo?["NSSplitViewDividerIndex"] != nil else { return }
                 MainActor.assumeIsolated {
                     guard let self, !self.isSizing, let pane = splitView?.arrangedSubviews.first else { return }
-                    UserDefaults.standard.set(Double(pane.frame.width), forKey: SettingsKey.tagsPaneWidth)
+                    AppDefaults.store.set(Double(pane.frame.width), forKey: SettingsKey.tagsPaneWidth)
                 }
             }
         }

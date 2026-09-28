@@ -1,0 +1,13 @@
+{"event": "playbook_start", "playbook": "site.yml"}
+{"event": "play_start", "play": "p1", "name": "Web servers", "pattern": "web"}
+{"event": "task_start", "task": "t1", "name": "Install nginx", "action": "debug", "handler": false, "prompts": false}
+{"event": "host_start", "task": "t1", "host": "web1"}
+{"event": "host_start", "task": "t1", "host": "web2"}
+{"event": "ok", "task": "t1", "host": "web1", "changed": false}
+{"event": "ok", "task": "t1", "host": "web2", "changed": true}
+{"event": "task_start", "task": "t2", "name": "Deploy app", "action": "debug", "handler": false, "prompts": false}
+{"event": "host_start", "task": "t2", "host": "web1"}
+{"event": "host_start", "task": "t2", "host": "web2"}
+{"event": "ok", "task": "t2", "host": "web1", "changed": true}
+{"event": "ok", "task": "t2", "host": "web2", "changed": false}
+{"event": "stats", "hosts": {"web1": {"ok": 2, "changed": 1, "failed": 0, "unreachable": 0, "skipped": 0, "rescued": 0, "ignored": 0}, "web2": {"ok": 2, "changed": 1, "failed": 0, "unreachable": 0, "skipped": 0, "rescued": 0, "ignored": 0}}}

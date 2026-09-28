@@ -291,7 +291,7 @@ final class Workspace {
         }
 
         var saved = SavedSelections()
-        if let data = UserDefaults.standard.data(forKey: defaultsKey),
+        if let data = AppDefaults.store.data(forKey: defaultsKey),
            let decoded = try? JSONDecoder().decode(SavedSelections.self, from: data) {
             saved = decoded
         }
@@ -313,7 +313,7 @@ final class Workspace {
             extraArguments: extraArguments
         )
         if let data = try? JSONEncoder().encode(saved) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
+            AppDefaults.store.set(data, forKey: defaultsKey)
         }
     }
 }

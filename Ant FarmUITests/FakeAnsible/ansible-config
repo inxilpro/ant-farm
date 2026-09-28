@@ -1,0 +1,3 @@
+#!/bin/sh
+# A stand-in for ansible-config: nothing in ansible.cfg changes Ant Farm's defaults.
+echo '[]'

@@ -1,0 +1,10 @@
+#!/bin/sh
+# A stand-in for `ansible-inventory --list`, matching the fixture's hosts file.
+cat <<'JSON'
+{
+  "_meta": { "hostvars": {} },
+  "all": { "children": ["ungrouped", "web", "db"] },
+  "web": { "hosts": ["web1", "web2"] },
+  "db": { "hosts": ["db1"] }
+}
+JSON

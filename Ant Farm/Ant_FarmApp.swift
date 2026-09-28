@@ -20,6 +20,7 @@ struct Ant_FarmApp: App {
         WindowGroup("Ant Farm", id: "workspace", for: URL.self) { $directory in
             RootView(directory: $directory)
                 .environment(app)
+                .defaultAppStorage(AppDefaults.store)
         }
         .defaultSize(width: 1300, height: 800)
         .commands {
@@ -29,6 +30,7 @@ struct Ant_FarmApp: App {
         Settings {
             SettingsView()
                 .environment(app)
+                .defaultAppStorage(AppDefaults.store)
         }
     }
 }
@@ -75,8 +77,9 @@ private struct AppCommands: Commands {
     let app: AppState
     @FocusedValue(WindowSession.self) private var session
     @Environment(\.openWindow) private var openWindow
-    @AppStorage(SettingsKey.runView) private var runView = RunView.summary
-    @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
+    // Commands aren't views, so they don't see `defaultAppStorage`.
+    @AppStorage(SettingsKey.runView, store: AppDefaults.store) private var runView = RunView.summary
+    @AppStorage(SettingsKey.terminalFontSize, store: AppDefaults.store) private var fontSize = 12.0
 
     private var workspace: Workspace? { session?.workspace }
     private var isRunning: Bool { session?.terminal.isRunning ?? false }

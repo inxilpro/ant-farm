@@ -45,6 +45,16 @@ and follows that CLI's discovery rules and history file format.
   folder. Hardened runtime stays on.
 - Unit tests use Swift Testing (`Ant FarmTests`). CI runs them on every push
   to `main`; the build can't run on Linux.
+- UI tests use XCUITest (`Ant FarmUITests`), and CI doesn't run them. Each test
+  writes a project to a temporary folder (`Fixture`) and runs it with the fake
+  Ansible in `Ant FarmUITests/FakeAnsible`, which prints canned output and
+  replays `events.jsonl` as the callback plugin would. The test runner is
+  sandboxed, so scripts it writes are quarantined and won't run; keep the fake
+  Ansible in the bundle. `ANTFARM_UI_TESTING=1` gives the app a settings store
+  of its own (`AppDefaults.store`), emptied at launch unless
+  `ANTFARM_UI_TESTING_KEEP_SETTINGS=1`, and skips the login shell, the
+  system's recent items, and Sparkle. Read and write settings through
+  `AppDefaults.store`, never `UserDefaults.standard`.
 - Before opening a PR, fetch the target branch and merge it in (or rebase a
   branch only you use), so the PR opens with no conflicts and CI tests the
   code as it will land.

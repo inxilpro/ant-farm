@@ -31,7 +31,7 @@ final class TerminalController {
     @ObservationIgnored private(set) lazy var view: AntTerminalView = {
         let view = AntTerminalView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
         view.processDelegate = self
-        view.applyFontSize(UserDefaults.standard.double(forKey: SettingsKey.terminalFontSize))
+        view.applyFontSize(AppDefaults.store.double(forKey: SettingsKey.terminalFontSize))
         return view
     }()
 
