@@ -46,9 +46,8 @@ struct TagsPane: View {
             .padding(.vertical, 8)
             .background(.bar)
         }
-        .navigationSplitViewColumnWidth(min: 180, ideal: TagColumn.idealWidth(for: workspace.tags) ?? 220)
-        // The column is laid out before the tags load, so widen it once they arrive.
-        .background(ColumnWidener(width: TagColumn.idealWidth(for: workspace.tags)))
+        .frame(minWidth: 180, idealWidth: TagColumn.idealWidth(for: workspace.tags) ?? 220, maxWidth: 480)
+        .background(PaneSizer(idealWidth: TagColumn.idealWidth(for: workspace.tags)))
     }
 
 
@@ -97,48 +96,93 @@ enum TagColumn {
     }
 }
 
-/// Widens the split view column it sits in to `width`, if it's narrower, once the tags load.
+/// Restores the tags pane to the width it was last dragged to, or, until it has been
+/// dragged, widens it to `idealWidth` once the tags load.
 ///
-/// SwiftUI only offers an ideal column width, which it applies before the tags load and
-/// which the split view's saved width then overrides.
-private struct ColumnWidener: NSViewRepresentable {
-    let width: CGFloat?
+/// SwiftUI's split view neither remembers its panes' widths nor applies an ideal width
+/// that arrives after its first layout, when the tags load.
+private struct PaneSizer: NSViewRepresentable {
+    let idealWidth: CGFloat?
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSView { NSView() }
 
     func updateNSView(_ view: NSView, context: Context) {
-        guard let width, !context.coordinator.didStart else { return }
-        context.coordinator.didStart = true
+        let coordinator = context.coordinator
+        coordinator.idealWidth = idealWidth
+        guard !coordinator.didStart else { return }
+        coordinator.didStart = true
         Task { @MainActor in
-            // The view may not be in the window yet, and the split view restores its saved
-            // widths after the first layout, so keep the column wide for a moment.
+            // The view may not be in the window yet, and the split view lays its panes out
+            // again after it appears, so keep sizing the pane for a moment.
             for _ in 0..<30 {
-                Self.widen(columnOf: view, to: width)
+                coordinator.size(paneOf: view)
                 try? await Task.sleep(for: .milliseconds(100))
             }
         }
     }
 
-    private static func widen(columnOf view: NSView, to width: CGFloat) {
-        var ancestor = view.superview
-        while let current = ancestor, !(current is NSSplitView) {
-            ancestor = current.superview
-        }
-        guard let splitView = ancestor as? NSSplitView else { return }
-        let columns = splitView.arrangedSubviews
-        guard let index = columns.firstIndex(where: { view.isDescendant(of: $0) }),
-              index < columns.count - 1 else { return }
-        // A column's view reaches under the floating sidebar, so measure only what shows.
-        let leading = index > 0 && !splitView.isSubviewCollapsed(columns[index - 1]) ? columns[index - 1].frame.maxX : columns[index].frame.minX
-        let visible = columns[index].frame.maxX - leading
-        if visible > 0 && visible < width {
-            splitView.setPosition(columns[index].frame.maxX + width - visible, ofDividerAt: index)
-        }
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
     }
 
     final class Coordinator {
         var didStart = false
+        var idealWidth: CGFloat?
+        private var observer: NSObjectProtocol?
+        /// Set while this code moves the divider, so only the user's drags are saved.
+        private var isSizing = false
+
+        private var savedWidth: CGFloat? {
+            let width = UserDefaults.standard.double(forKey: SettingsKey.tagsPaneWidth)
+            return width > 0 ? width : nil
+        }
+
+        func size(paneOf view: NSView) {
+            var ancestor = view.superview
+            while let current = ancestor, !(current is NSSplitView) {
+                ancestor = current.superview
+            }
+            guard let splitView = ancestor as? NSSplitView,
+                  let pane = splitView.arrangedSubviews.first,
+                  view.isDescendant(of: pane) else { return }
+            observe(splitView)
+
+            let current = pane.frame.width
+            let target: CGFloat
+            if let saved = savedWidth {
+                target = saved
+            } else if let ideal = idealWidth, current < ideal {
+                target = ideal
+            } else {
+                return
+            }
+            guard abs(current - target) >= 1 else { return }
+            isSizing = true
+            splitView.setPosition(pane.frame.minX + target, ofDividerAt: 0)
+            isSizing = false
+        }
+
+        private func observe(_ splitView: NSSplitView) {
+            guard observer == nil else { return }
+            observer = NotificationCenter.default.addObserver(
+                forName: NSSplitView.didResizeSubviewsNotification,
+                object: splitView,
+                queue: .main
+            ) { [weak self, weak splitView] note in
+                // Resizing the window resizes the panes too, but without a divider index.
+                guard note.userInfo?["NSSplitViewDividerIndex"] != nil else { return }
+                MainActor.assumeIsolated {
+                    guard let self, !self.isSizing, let pane = splitView?.arrangedSubviews.first else { return }
+                    UserDefaults.standard.set(Double(pane.frame.width), forKey: SettingsKey.tagsPaneWidth)
+                }
+            }
+        }
+
+        func stopObserving() {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+        }
     }
 }

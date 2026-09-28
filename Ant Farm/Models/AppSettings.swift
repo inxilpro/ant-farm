@@ -16,6 +16,7 @@ enum SettingsKey {
     static let terminalFontSize = "terminalFontSize"
     static let runView = "runView"
     static let onlyChanges = "onlyChanges"
+    static let tagsPaneWidth = "tagsPaneWidth"
     static let selectionsPrefix = "workspace:"
 }
 

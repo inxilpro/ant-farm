@@ -126,10 +126,13 @@ Largest gains first.
       section show checked and dimmed, and clicking them does nothing.
       Uncheck it: they're unchecked and clickable. ⌘Z restores their own
       states.
-- [ ] The toolbar's actions sit at the right, over the run pane, with the
-      sidebar shown and hidden.
-- [ ] A playbook with many tags opens with the tags column wide enough for
-      most of them; dragging it narrower sticks.
+- [ ] Reload sits beside the sidebar button; History, Check/Live, and Run
+      sit at the right, with Run last, with the sidebar shown and hidden.
+- [ ] The divider between tags and the run stops below the toolbar, with
+      and without window tabs.
+- [ ] A playbook with many tags opens with the tags pane wide enough for
+      most of them. Drag it to another width, relaunch, and open another
+      folder: both keep that width.
 - [ ] The playbook and inventory pickers span the sidebar.
 - [ ] ⌥⌘F focuses the host filter, even with the sidebar hidden.
 - [ ] View > Customize Toolbar: add Open in Terminal; relaunch; it stays.

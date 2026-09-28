@@ -30,8 +30,9 @@ and follows that CLI's discovery rules and history file format.
   SwiftTerm. Keep it that way so the engine can be swapped for libghostty.
 - `Ant Farm/Views`: `RootView` (one window: welcome screen or workspace),
   the three-pane `WorkspaceView` (a sidebar with the folder, group tree, then
-  playbook and inventory; tags; run), `WelcomeView`, `SettingsView`. The
-  toolbar holds only actions and sits over the run pane. `TerminalPane` shows
+  playbook and inventory; then tags and run side by side in the detail
+  column), `WelcomeView`, `SettingsView`. The toolbar holds only actions and
+  spans the tags and run panes, with Reload at its leading edge and Run last. `TerminalPane` shows
   `PlanView` before a run, then `RunReportView`, with the terminal a click
   away.
 

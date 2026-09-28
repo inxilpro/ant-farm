@@ -7,8 +7,9 @@ import AppKit
 import SwiftUI
 
 /// The three-pane window for an open workspace. The sidebar holds the folder, hosts,
-/// playbook, and inventory; then come the tags and the terminal. The toolbar holds only
-/// actions, and View > Customize Toolbar can add or rearrange them.
+/// playbook, and inventory; then come the tags and the terminal, side by side under one
+/// toolbar. The toolbar holds only actions, and View > Customize Toolbar can add or
+/// rearrange them.
 struct WorkspaceView: View {
     @Environment(AppState.self) private var app
     @Environment(WindowSession.self) private var session
@@ -19,22 +20,24 @@ struct WorkspaceView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: columnVisibility) {
             InventoryPane(workspace: workspace)
-        } content: {
-            TagsPane(workspace: workspace)
         } detail: {
-            // Attached to the detail column so the actions sit over the run, not the tags list.
-            TerminalPane(workspace: workspace)
-                .toolbar(id: "workspace") { toolbar }
+            // Tags and the run share the detail column, so the toolbar spans both and the
+            // divider between them stops below it instead of reaching into the title bar.
+            HSplitView {
+                TagsPane(workspace: workspace)
+                TerminalPane(workspace: workspace)
+                    .frame(minWidth: 420, maxWidth: .infinity)
+                    .layoutPriority(1)
+            }
+            .toolbar(id: "workspace.v2") { toolbar }
         }
         // The window keeps its title for the Window menu; the sidebar shows the folder instead.
         .navigationTitle(workspace.name)
         .toolbar(removing: .title)
-        // Edit > Filter Hosts and Filter Tags bring back the columns that hold them.
+        // Edit > Filter Hosts brings back the sidebar that holds the host filter.
         .onChange(of: session.focusRequest) { _, target in
             if target == .hosts && storedVisibility != "all" {
                 storedVisibility = "all"
-            } else if target == .tags && storedVisibility == "detailOnly" {
-                storedVisibility = "doubleColumn"
             }
         }
         // Drop another folder on the window to open it in its own window.
@@ -70,27 +73,29 @@ struct WorkspaceView: View {
 
     private var columnVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
-            get: {
-                switch storedVisibility {
-                case "doubleColumn": .doubleColumn
-                case "detailOnly": .detailOnly
-                default: .all
-                }
-            },
-            set: { visibility in
-                switch visibility {
-                case .doubleColumn: storedVisibility = "doubleColumn"
-                case .detailOnly: storedVisibility = "detailOnly"
-                default: storedVisibility = "all"
-                }
-            }
+            // Earlier versions had three columns and stored "doubleColumn" for a hidden sidebar.
+            get: { storedVisibility == "all" ? .all : .detailOnly },
+            set: { storedVisibility = $0 == .detailOnly ? "detailOnly" : "all" }
         )
     }
 
     @ToolbarContentBuilder
     private var toolbar: some CustomizableToolbarContent {
-        // Keeps the actions at the trailing edge, over the run pane, not over the tags column.
+        // Sits at the leading edge, beside the sidebar button.
+        ToolbarItem(id: "reload", placement: .navigation) {
+            Button("Reload", systemImage: "arrow.clockwise") {
+                Task { await session.reload() }
+            }
+            .disabled(workspace.isDiscovering)
+            .help("Reload inventories, playbooks, and tags (⇧⌘R)")
+        }
+
+        // Pushes the rest to the trailing edge, with Run last.
         ToolbarSpacer(.flexible)
+
+        ToolbarItem(id: "history", placement: .automatic) {
+            HistoryMenu(workspace: workspace)
+        }
 
         ToolbarItem(id: "mode", placement: .automatic) {
             Picker("Mode", selection: $workspace.mode) {
@@ -112,18 +117,6 @@ struct WorkspaceView: View {
                     .disabled(!session.canRun)
                     .help(workspace.mode == .live ? "Run live (⌘R)" : "Run in check mode (⌘R)")
             }
-        }
-
-        ToolbarItem(id: "history", placement: .automatic) {
-            HistoryMenu(workspace: workspace)
-        }
-
-        ToolbarItem(id: "reload", placement: .automatic) {
-            Button("Reload", systemImage: "arrow.clockwise") {
-                Task { await session.reload() }
-            }
-            .disabled(workspace.isDiscovering)
-            .help("Reload inventories, playbooks, and tags (⇧⌘R)")
         }
 
         ToolbarItem(id: "copyCommand", placement: .automatic, showsByDefault: false) {
