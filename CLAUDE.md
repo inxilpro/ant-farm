@@ -6,26 +6,32 @@ and follows that CLI's discovery rules and history file format.
 
 ## Layout
 
-- `Ant Farm/Ant_FarmApp.swift`: the scenes, the menu bar (`AppCommands`), and
-  `AppDelegate`, which owns `AppState` and opens folders sent from Finder or
-  the Dock.
-- `Ant Farm/Models`: `AppState` (open workspace, located tools, runs),
-  `Workspace` (discovery results, selections, and the run plan for one
-  folder), `AnsibleCommand` (argv building and parsing), `Selection`
-  (include/exclude), `RunPlan` (parses `--list-hosts --list-tasks`),
-  `RunReport` (builds a run's plays, tasks, and host results from events).
+- `Ant Farm/Ant_FarmApp.swift`: the scenes (a `WindowGroup(for: URL.self)`,
+  one window per folder), the menu bar (`AppCommands`, which acts on the key
+  window through `@FocusedValue(WindowSession.self)`), and `AppDelegate`,
+  which owns `AppState`, confirms quitting during a run, and answers run
+  notifications.
+- `Ant Farm/Models`: `AppState` (located tools, recent folders, the open
+  windows, and which window a folder opens in), `WindowSession` (one
+  window's workspace, terminal, monitor, and run), `Workspace` (discovery
+  results, selections, and the run plan for one folder), `AnsibleCommand`
+  (argv building and parsing), `Selection` (include/exclude), `RunPlan`
+  (parses `--list-hosts --list-tasks`), `RunReport` (builds a run's plays,
+  tasks, and host results from events).
 - `Ant Farm/Services`: `Discovery` (inventories, playbooks, tags),
   `AnsibleTools` and `LoginShell` (find Ansible through the login shell's
   PATH), `ProcessRunner`, `RunHistory`, `UpdaterController` (Sparkle),
-  `RunMonitor` (sets up the callback plugin and reads its events).
+  `RunMonitor` (sets up the callback plugin and reads its events),
+  `RunNotifier` (the run-finished notification).
 - `Ant Farm/Callback/antfarm.py`: the callback plugin added to every run. It
   writes JSON lines to `$ANTFARM_EVENTS`. Standard library only, and it must
   work on old and new ansible-core (2.19 renamed `_result`/`_host`/`_task`).
 - `Ant Farm/Terminal/TerminalController.swift`: the only code that touches
   SwiftTerm. Keep it that way so the engine can be swapped for libghostty.
-- `Ant Farm/Views`: the three-pane `WorkspaceView` (a sidebar with the
-  folder, group tree, then playbook and inventory; tags; run), `WelcomeView`,
-  `SettingsView`. The toolbar holds only actions and sits over the run pane. `TerminalPane` shows
+- `Ant Farm/Views`: `RootView` (one window: welcome screen or workspace),
+  the three-pane `WorkspaceView` (a sidebar with the folder, group tree, then
+  playbook and inventory; tags; run), `WelcomeView`, `SettingsView`. The
+  toolbar holds only actions and sits over the run pane. `TerminalPane` shows
   `PlanView` before a run, then `RunReportView`, with the terminal a click
   away.
 
@@ -43,5 +49,8 @@ and follows that CLI's discovery rules and history file format.
   code as it will land.
 - UI work follows the `mac-assed-mac-app` skill (`.claude/skills/`). The last
   review against it is `Documentation/MAC-REVIEW.md`.
+- Per-window state lives in `WindowSession`, never in `AppState`. Close
+  handling uses `NSWindow.willCloseNotification`, not `onDisappear`, which
+  SwiftUI also sends when a window becomes a background tab.
 - Releases: push a `vX.Y.Z` tag; see `Documentation/RELEASING.md`.
 - Future work: `Documentation/ROADMAP.md`.

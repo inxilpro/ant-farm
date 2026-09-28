@@ -15,15 +15,19 @@ struct SelectionRow: View {
     var systemImage: String
     var help: String?
     let state: SelectionState
+    /// Set when a group's state covers this row; the row shows it and can't change.
+    var inheritedState: SelectionState?
     let onChange: (SelectionState) -> Void
+
+    private var shownState: SelectionState { inheritedState ?? state }
 
     var body: some View {
         HStack(spacing: 8) {
-            StateIcon(state: state)
+            StateIcon(state: shownState)
             Label {
                 Text(title)
-                    .strikethrough(state == .excluded, color: .secondary)
-                    .foregroundStyle(state == .excluded ? .secondary : .primary)
+                    .strikethrough(shownState == .excluded, color: .secondary)
+                    .foregroundStyle(shownState == .excluded ? .secondary : .primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             } icon: {
@@ -38,30 +42,41 @@ struct SelectionRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .opacity(inheritedState == nil ? 1 : 0.5)
         .contentShape(Rectangle())
         .onTapGesture {
+            guard inheritedState == nil else { return }
             if NSEvent.modifierFlags.contains(.option) {
                 onChange(state == .excluded ? .none : .excluded)
             } else {
                 onChange(state.toggled)
             }
         }
-        .help(help ?? "Click to include, Option-click to exclude")
+        .help(inheritedState.map { $0 == .excluded ? "Excluded with a group it's in" : "Included with a group it's in" }
+              ?? help ?? "Click to include, Option-click to exclude")
         .contextMenu {
             Button("Include", systemImage: "checkmark.circle") { onChange(.included) }
-                .disabled(state == .included)
+                .disabled(inheritedState != nil || state == .included)
             Button("Exclude", systemImage: "minus.circle") { onChange(.excluded) }
-                .disabled(state == .excluded)
+                .disabled(inheritedState != nil || state == .excluded)
             Divider()
             Button("Clear", systemImage: "circle") { onChange(.none) }
-                .disabled(state == .none)
+                .disabled(inheritedState != nil || state == .none)
+            Divider()
+            Button("Copy Name", systemImage: "doc.on.doc") { copyLines([title]) }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(state.accessibilityLabel)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { onChange(state.toggled) }
-        .accessibilityAction(named: "Exclude") { onChange(.excluded) }
+        .accessibilityValue(inheritedState == nil ? state.accessibilityLabel : shownState.accessibilityLabel + " with a group it's in")
+        .accessibilityAddTraits(inheritedState == nil ? .isButton : [])
+        .accessibilityAction { if inheritedState == nil { onChange(state.toggled) } }
+        .accessibilityAction(named: "Exclude") { if inheritedState == nil { onChange(.excluded) } }
     }
+}
+
+/// Puts names on the pasteboard, one per line.
+func copyLines(_ lines: [String]) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
 }
 
 struct StateIcon: View {
@@ -112,10 +127,13 @@ extension SelectionState {
     }
 }
 
-/// A compact filter field for the top of a pane.
+/// A compact filter field for the top of a pane. Edit > Filter Hosts / Filter Tags focuses it.
 struct FilterField: View {
+    @Environment(WindowSession.self) private var session
     let prompt: String
+    let target: FilterTarget
     @Binding var text: String
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 4) {
@@ -123,7 +141,13 @@ struct FilterField: View {
                 .foregroundStyle(.secondary)
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
+                .focused($isFocused)
                 .onExitCommand { text = "" }
+                .onChange(of: session.focusRequest, initial: true) { _, request in
+                    guard request == target else { return }
+                    isFocused = true
+                    session.focusRequest = nil
+                }
             if !text.isEmpty {
                 Button("Clear Filter", systemImage: "xmark.circle.fill") { text = "" }
                     .labelStyle(.iconOnly)

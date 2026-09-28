@@ -9,6 +9,7 @@ import SwiftUI
 /// Shown when no workspace is open.
 struct WelcomeView: View {
     @Environment(AppState.self) private var app
+    @Environment(WindowSession.self) private var session
 
     var body: some View {
         VStack(spacing: 24) {
@@ -24,7 +25,7 @@ struct WelcomeView: View {
             }
 
             Button {
-                app.chooseDirectory()
+                app.chooseDirectory(for: session)
             } label: {
                 Label("Open Folder…", systemImage: "folder")
                     .padding(.horizontal, 8)
@@ -39,7 +40,7 @@ struct WelcomeView: View {
                         .foregroundStyle(.secondary)
                     ForEach(app.recentDirectories.prefix(5), id: \.self) { url in
                         Button {
-                            Task { await app.open(url) }
+                            app.open(url, preferring: session)
                         } label: {
                             Label {
                                 VStack(alignment: .leading, spacing: 1) {
@@ -57,7 +58,7 @@ struct WelcomeView: View {
                         .buttonStyle(.plain)
                         .help(url.path.abbreviatingHome)
                         .contextMenu {
-                            Button("Open") { Task { await app.open(url) } }
+                            Button("Open") { app.open(url, preferring: session) }
                             Button("Show in Finder") {
                                 NSWorkspace.shared.activateFileViewerSelecting([url])
                             }
@@ -78,9 +79,12 @@ struct WelcomeView: View {
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dropDestination(for: URL.self) { urls, _ in
-            guard let url = urls.first(where: \.isFolder) else { return false }
-            Task { await app.open(url) }
-            return true
+            let folders = urls.filter(\.isFolder)
+            // The first folder opens here, and any others in windows of their own.
+            for (index, url) in folders.enumerated() {
+                app.open(url, preferring: index == 0 ? session : nil)
+            }
+            return !folders.isEmpty
         }
     }
 }

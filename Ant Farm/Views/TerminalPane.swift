@@ -9,16 +9,16 @@ import SwiftUI
 /// Third pane: the command about to run (or running), then what the run will do,
 /// is doing, or did. Ansible's own output is one click away in the terminal.
 struct TerminalPane: View {
-    @Environment(AppState.self) private var app
+    @Environment(WindowSession.self) private var session
     @AppStorage(SettingsKey.runView) private var runView = RunView.summary
     let workspace: Workspace
 
-    private var report: RunReport { app.monitor.report }
+    private var report: RunReport { session.monitor.report }
 
-    private var isTerminalForced: Bool { app.isTerminalForced }
+    private var isTerminalForced: Bool { session.isTerminalForced }
 
     private var showsTerminal: Bool {
-        guard app.terminal.status != .idle else { return false }
+        guard session.terminal.status != .idle else { return false }
         return isTerminalForced || runView == .terminal
     }
 
@@ -26,7 +26,7 @@ struct TerminalPane: View {
         VStack(spacing: 0) {
             CommandHeader(workspace: workspace, runView: $runView, showsTerminal: showsTerminal, isTerminalForced: isTerminalForced)
             Divider()
-            if report.isWaitingForInput && app.terminal.isRunning {
+            if report.isWaitingForInput && session.terminal.isRunning {
                 Label("Ansible is waiting for input. Type your answer in the terminal.", systemImage: "keyboard")
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -36,15 +36,15 @@ struct TerminalPane: View {
                 Divider()
             }
             ZStack {
-                TerminalHost(controller: app.terminal, isVisible: showsTerminal)
+                TerminalHost(controller: session.terminal, isVisible: showsTerminal)
                     .padding(.leading, 6)
                     .background(Color(nsColor: .textBackgroundColor))
                 if !showsTerminal {
                     Group {
-                        if app.terminal.status == .idle {
+                        if session.terminal.status == .idle {
                             PlanView(workspace: workspace)
                         } else {
-                            RunReportView(report: report, isRunning: app.terminal.isRunning) {
+                            RunReportView(report: report, isRunning: session.terminal.isRunning) {
                                 runView = .terminal
                             }
                         }
@@ -55,22 +55,22 @@ struct TerminalPane: View {
             }
         }
         .onChange(of: showsTerminal) { _, shows in
-            if shows && app.terminal.isRunning {
-                app.terminal.focus()
+            if shows && session.terminal.isRunning {
+                session.terminal.focus()
             }
         }
     }
 }
 
 private struct CommandHeader: View {
-    @Environment(AppState.self) private var app
+    @Environment(WindowSession.self) private var session
     @AppStorage(SettingsKey.alwaysDiff) private var alwaysDiff = true
     let workspace: Workspace
     @Binding var runView: RunView
     let showsTerminal: Bool
     let isTerminalForced: Bool
 
-    private var terminal: TerminalController { app.terminal }
+    private var terminal: TerminalController { session.terminal }
 
     /// While a run is in progress (or just finished), show its command; otherwise preview the next one.
     private var argv: [String]? {
@@ -125,7 +125,7 @@ private struct CommandHeader: View {
             }
 
             if terminal.status != .idle && !terminal.isRunning {
-                Button("Clear", systemImage: "clear") { app.clearRun() }
+                Button("Clear", systemImage: "clear") { session.clearRun() }
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .help("Clear the run and show what the next one will do (⌘K)")

@@ -116,6 +116,29 @@ nonisolated struct InventoryContents: Equatable, Sendable {
         return InventoryContents(groups: groups, hosts: hosts.sorted(by: order), roots: roots)
     }
 
+    /// Every group inside `name`, at any depth.
+    func subgroups(of name: String) -> Set<String> {
+        let byName = Dictionary(groups.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        var found = Set<String>()
+        var pending = byName[name]?.children ?? []
+        while let next = pending.popLast() {
+            guard next != name, found.insert(next).inserted else { continue }
+            pending += byName[next]?.children ?? []
+        }
+        return found
+    }
+
+    /// The state a host gets from the groups in `limit` that contain it. Exclusion wins,
+    /// as it does in Ansible's `--limit`.
+    func coveringState(ofHost host: String, in limit: Selection) -> SelectionState? {
+        func anyContains(_ names: [String]) -> Bool {
+            names.contains { name in groups.first { $0.name == name }?.hosts.contains(host) == true }
+        }
+        if anyContains(limit.excluded) { return .excluded }
+        if anyContains(limit.included) { return .included }
+        return nil
+    }
+
     /// The groups as a tree, keeping a group when its name or one of its hosts passes
     /// `include`, or when it contains a group that is kept.
     func groupTree(including include: (String) -> Bool = { _ in true }) -> [InventoryGroupNode] {

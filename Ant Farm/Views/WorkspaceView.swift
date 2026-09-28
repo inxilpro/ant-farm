@@ -7,10 +7,11 @@ import AppKit
 import SwiftUI
 
 /// The three-pane window for an open workspace. The sidebar holds the folder, hosts,
-/// playbook, and inventory; then come the tags and the terminal. The toolbar holds only actions.
+/// playbook, and inventory; then come the tags and the terminal. The toolbar holds only
+/// actions, and View > Customize Toolbar can add or rearrange them.
 struct WorkspaceView: View {
     @Environment(AppState.self) private var app
-    @Environment(\.undoManager) private var undoManager
+    @Environment(WindowSession.self) private var session
     @Bindable var workspace: Workspace
     /// Which columns show, kept across launches.
     @SceneStorage("columnVisibility") private var storedVisibility = "all"
@@ -23,39 +24,45 @@ struct WorkspaceView: View {
         } detail: {
             // Attached to the detail column so the actions sit over the run, not the tags list.
             TerminalPane(workspace: workspace)
-                .toolbar { toolbar }
+                .toolbar(id: "workspace") { toolbar }
         }
         // The window keeps its title for the Window menu; the sidebar shows the folder instead.
         .navigationTitle(workspace.name)
         .toolbar(removing: .title)
-        // Undo can't reach a folder that's no longer open.
-        .onDisappear { undoManager?.removeAllActions(withTarget: workspace) }
-        // Drop another folder on the window to switch to it.
+        // Edit > Filter Hosts and Filter Tags bring back the columns that hold them.
+        .onChange(of: session.focusRequest) { _, target in
+            if target == .hosts && storedVisibility != "all" {
+                storedVisibility = "all"
+            } else if target == .tags && storedVisibility == "detailOnly" {
+                storedVisibility = "doubleColumn"
+            }
+        }
+        // Drop another folder on the window to open it in its own window.
         .dropDestination(for: URL.self) { urls, _ in
-            guard !app.terminal.isRunning, let url = urls.first(where: \.isFolder) else { return false }
-            Task { await app.open(url) }
-            return true
+            let folders = urls.filter(\.isFolder)
+            folders.forEach { app.open($0) }
+            return !folders.isEmpty
         }
         .confirmationDialog(
             "Run in live mode?",
             isPresented: Binding(
-                get: { app.pendingLiveRun != nil },
-                set: { if !$0 { app.pendingLiveRun = nil } }
+                get: { session.pendingLiveRun != nil },
+                set: { if !$0 { session.pendingLiveRun = nil } }
             ),
-            presenting: app.pendingLiveRun
+            presenting: session.pendingLiveRun
         ) { command in
             Button("Run Live", role: .destructive) {
-                app.pendingLiveRun = nil
-                app.run(command, confirmed: true)
+                session.pendingLiveRun = nil
+                session.run(command, confirmed: true)
             }
             .keyboardShortcut(.defaultAction)
             Button("Run in Check Mode") {
-                app.pendingLiveRun = nil
+                session.pendingLiveRun = nil
                 var check = command
                 check.mode = .check
-                app.run(check)
+                session.run(check)
             }
-            Button("Cancel", role: .cancel) { app.pendingLiveRun = nil }
+            Button("Cancel", role: .cancel) { session.pendingLiveRun = nil }
         } message: { command in
             Text("This will make real changes.\n\n\(ShellQuoting.format(command.argv))")
         }
@@ -81,8 +88,11 @@ struct WorkspaceView: View {
     }
 
     @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
+    private var toolbar: some CustomizableToolbarContent {
+        // Keeps the actions at the trailing edge, over the run pane, not over the tags column.
+        ToolbarSpacer(.flexible)
+
+        ToolbarItem(id: "mode", placement: .automatic) {
             Picker("Mode", selection: $workspace.mode) {
                 Label("Check", systemImage: "checkmark.shield").tag(RunMode.check)
                 Label("Live", systemImage: "bolt.fill").tag(RunMode.live)
@@ -92,35 +102,57 @@ struct WorkspaceView: View {
             .help("Check mode (--check) reports what would change. Live mode makes changes.")
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            if app.terminal.isRunning {
-                Button("Stop", systemImage: "stop.fill") { app.stop() }
+        ToolbarItem(id: "run", placement: .automatic) {
+            if session.terminal.isRunning {
+                Button("Stop", systemImage: "stop.fill") { session.stop() }
                     .help("Stop the run (⌘.)")
             } else {
-                Button("Run", systemImage: "play.fill") { app.runCurrent() }
+                Button("Run", systemImage: "play.fill") { session.runCurrent() }
                     .tint(workspace.mode == .live ? .red : nil)
-                    .disabled(!app.canRun)
+                    .disabled(!session.canRun)
                     .help(workspace.mode == .live ? "Run live (⌘R)" : "Run in check mode (⌘R)")
             }
         }
 
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "history", placement: .automatic) {
             HistoryMenu(workspace: workspace)
         }
 
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "reload", placement: .automatic) {
             Button("Reload", systemImage: "arrow.clockwise") {
-                Task { await app.reload() }
+                Task { await session.reload() }
             }
             .disabled(workspace.isDiscovering)
             .help("Reload inventories, playbooks, and tags (⇧⌘R)")
+        }
+
+        ToolbarItem(id: "copyCommand", placement: .automatic, showsByDefault: false) {
+            Button("Copy Command", systemImage: "doc.on.doc") {
+                if let argv = session.displayedCommand { copyCommand(argv) }
+            }
+            .disabled(session.displayedCommand == nil)
+            .help("Copy the command (⇧⌘C)")
+        }
+
+        ToolbarItem(id: "finder", placement: .automatic, showsByDefault: false) {
+            Button("Show in Finder", systemImage: "folder") {
+                NSWorkspace.shared.activateFileViewerSelecting([workspace.directory])
+            }
+            .help("Show the folder in Finder")
+        }
+
+        ToolbarItem(id: "terminal", placement: .automatic, showsByDefault: false) {
+            Button("Open in Terminal", systemImage: "apple.terminal") {
+                openInTerminal(workspace.directory)
+            }
+            .help("Open the folder in Terminal")
         }
     }
 }
 
 /// Past runs from the shared history file, each re-runnable in either mode.
 struct HistoryMenu: View {
-    @Environment(AppState.self) private var app
+    @Environment(WindowSession.self) private var session
     let workspace: Workspace
 
     var body: some View {
@@ -131,10 +163,10 @@ struct HistoryMenu: View {
             ForEach(Array(workspace.history.prefix(15).enumerated()), id: \.offset) { _, argv in
                 Menu(title(for: argv)) {
                     Button("Run in Check Mode", systemImage: "checkmark.shield") {
-                        app.rerun(argv, mode: .check)
+                        session.rerun(argv, mode: .check)
                     }
                     Button("Run Live…", systemImage: "bolt.fill") {
-                        app.rerun(argv, mode: .live)
+                        session.rerun(argv, mode: .live)
                     }
                     Divider()
                     Button("Restore Selections") {
@@ -144,7 +176,7 @@ struct HistoryMenu: View {
                     }
                     Button("Copy Command") { copyCommand(argv) }
                 }
-                .disabled(app.terminal.isRunning)
+                .disabled(session.terminal.isRunning)
             }
         } label: {
             Label("History", systemImage: "clock.arrow.circlepath")
@@ -162,36 +194,47 @@ struct HistoryMenu: View {
     }
 }
 
-/// Open Folder, recent folders, and Reveal in Finder, for the folder menu in the sidebar.
+/// Open Folder, recent folders, Show in Finder, and Open in Terminal, for the folder menu in the sidebar.
 struct FolderMenuItems: View {
     @Environment(AppState.self) private var app
+    @Environment(WindowSession.self) private var session
 
     var body: some View {
-        Button("Open Folder…") { app.chooseDirectory() }
-        if !app.recentDirectories.isEmpty {
+        Button("Open Folder…") { app.chooseDirectory(for: session) }
+        let recents = app.recentDirectories.filter { $0 != session.directory }
+        if !recents.isEmpty {
             Divider()
-            ForEach(app.recentDirectories, id: \.self) { url in
-                Button(url.path.abbreviatingHome) {
-                    Task { await app.open(url) }
-                }
+            ForEach(recents, id: \.self) { url in
+                Button(url.path.abbreviatingHome) { app.open(url) }
             }
         }
-        if let workspace = app.workspace {
+        if let directory = session.directory {
             Divider()
-            Button("Reveal in Finder") {
-                NSWorkspace.shared.activateFileViewerSelecting([workspace.directory])
+            Button("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([directory])
             }
+            Button("Open in Terminal") { openInTerminal(directory) }
         }
     }
 }
 
+/// Opens a Terminal window at a folder, e.g. to run Ansible by hand.
+func openInTerminal(_ directory: URL) {
+    guard let terminal = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") else { return }
+    NSWorkspace.shared.open([directory], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
+}
+
 /// Puts a command on the pasteboard as shell-quoted text, ready to paste into Terminal.
 func copyCommand(_ argv: [String]) {
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.setString(ShellQuoting.format(argv), forType: .string)
+    copyLines([ShellQuoting.format(argv)])
 }
 
 extension URL {
+    /// One spelling per folder, with or without a trailing slash or `..`, so windows can be matched to folders.
+    var folderURL: URL {
+        URL(fileURLWithPath: standardizedFileURL.path, isDirectory: true)
+    }
+
     var isFolder: Bool {
         (try? resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }

@@ -335,3 +335,15 @@ nonisolated struct RunReport: Equatable, Sendable {
         }
     }
 }
+
+extension RunReport {
+    /// "3 hosts · 1 changed · 1 failed", for the recap and the run-finished notification.
+    static func headline(for recap: [HostRecap]) -> String {
+        let failed = recap.count(where: { $0.stats.failed > 0 || $0.stats.unreachable > 0 })
+        let changed = recap.count(where: { $0.stats.changed > 0 })
+        var parts = ["\(recap.count) \(recap.count == 1 ? "host" : "hosts")"]
+        if changed > 0 { parts.append("\(changed) changed") }
+        if failed > 0 { parts.append("\(failed) failed") }
+        return parts.joined(separator: " · ")
+    }
+}

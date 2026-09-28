@@ -127,6 +127,14 @@ struct InventoryContentsTests {
         let filtered = contents.groupTree { $0.contains("proxy1") }
         #expect(filtered.map(\.group.name) == ["production"])
         #expect(filtered[0].children.map(\.group.name) == ["proxy"])
+
+        #expect(contents.subgroups(of: "production") == ["proxy", "www"])
+        #expect(contents.subgroups(of: "www").isEmpty)
+
+        let limit = Selection(included: ["production"], excluded: ["www"])
+        #expect(contents.coveringState(ofHost: "proxy1", in: limit) == .included)
+        #expect(contents.coveringState(ofHost: "www1", in: limit) == .excluded)
+        #expect(contents.coveringState(ofHost: "lonely", in: limit) == nil)
     }
 }
 
