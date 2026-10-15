@@ -91,12 +91,8 @@ struct InventoryPane: View {
         } else if workspace.isLoadingInventory || app.isLocatingTools {
             ProgressView()
         } else if let error = workspace.inventoryError {
-            ContentUnavailableView {
-                Label("Couldn't Load Inventory", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(error).textSelection(.enabled)
-            } actions: {
-                Button("Try Again") { Task { await workspace.loadInventoryContents() } }
+            CommandErrorView(title: "Couldn't Load Inventory", error: error) {
+                Task { await workspace.loadInventoryContents() }
             }
         } else if !filter.isEmpty && workspace.contents.hosts.filter(matches).isEmpty
                     && workspace.contents.groupTree(including: matches).isEmpty {

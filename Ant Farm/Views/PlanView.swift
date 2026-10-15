@@ -20,17 +20,8 @@ struct PlanView: View {
             } else if let plan = workspace.plan {
                 content(plan)
             } else if let error = workspace.planError, !workspace.isLoadingPlan {
-                ContentUnavailableView {
-                    Label("Couldn't Preview the Run", systemImage: "exclamationmark.triangle")
-                } description: {
-                    ScrollView {
-                        Text(error)
-                            .font(.system(.callout, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                    .frame(maxHeight: 240)
-                } actions: {
-                    Button("Try Again") { workspace.schedulePlan() }
+                CommandErrorView(title: "Couldn't Preview the Run", error: error, monospaced: true) {
+                    workspace.schedulePlan()
                 }
             } else {
                 ProgressView("Working out what will run…")

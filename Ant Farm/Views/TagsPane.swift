@@ -62,12 +62,8 @@ struct TagsPane: View {
         } else if workspace.isLoadingTags {
             ProgressView()
         } else if let error = workspace.tagsError {
-            ContentUnavailableView {
-                Label("Couldn't List Tags", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(error).textSelection(.enabled)
-            } actions: {
-                Button("Try Again") { Task { await workspace.loadTags() } }
+            CommandErrorView(title: "Couldn't List Tags", error: error) {
+                Task { await workspace.loadTags() }
             }
         } else if workspace.tags.isEmpty && workspace.selectedPlaybook != nil {
             ContentUnavailableView(
