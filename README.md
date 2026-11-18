@@ -73,6 +73,45 @@ Runs are saved to `.ansible-interactive-history` in the workspace, the same
 file the CLI uses, so the two share history. The clock button in the toolbar
 re-runs a past command in check or live mode or restores its selections.
 
+## Links
+
+An `antfarm://` link opens a folder with its inventory, playbook, hosts, and tags
+already chosen, so a runbook or chat message can stand in for an
+`ansible-playbook` command. Opening a link never starts a run: you still press
+Run, and live runs still ask first. Edit > Copy Link (⇧⌥⌘C) makes a link for
+the current window.
+
+```
+antfarm://open?repo=internachi/orchestration&inventory=production.ini&playbook=ec2-provision.yml&limit=proxy&tags=nginx-sub-config
+```
+
+does what this does:
+
+```
+ansible-playbook -i production.ini ec2-provision.yml --limit proxy --tags nginx-sub-config --check --diff
+```
+
+| Parameter | Meaning |
+| --- | --- |
+| `repo` | The git repository, by its remote: `owner/name`, `host/owner/name`, or a full remote URL. Ant Farm looks for a clone among the folders in open windows and Open Recent, so the link works wherever each person keeps the repo. If it finds none, it asks you to choose your clone. |
+| `folder` | With `repo`, the folder inside the repository to open, such as `ansible`. The top of the repository if left out. |
+| `path` | Instead of `repo`, a folder on disk. `~` is your home folder. |
+| `inventory` | An inventory, as `-i` takes it, relative to the folder. Repeat it for more than one source. |
+| `playbook` | The playbook, relative to the folder. |
+| `limit` | Hosts and groups to run on. `!name` excludes one. |
+| `tags` / `skip-tags` | Tags to run, and tags to skip. |
+| `mode` | `check` (the default) or `live`. |
+| `args` | More `ansible-playbook` arguments, as on a command line, such as `-e env=prod`. |
+
+`limit`, `tags`, and `skip-tags` take a comma-separated list, and can be
+repeated (`tags=a&tags=b`, or `tags[]=a&tags[]=b`). A link describes a whole
+command: hosts, tags, and arguments it leaves out are cleared, and the
+inventory and playbook stay as they were. Whether the run shows a diff follows
+the setting, as it does for every run. If part of a link doesn't match the
+folder, such as a host that isn't in the inventory, Ant Farm leaves that part
+out and says so. Selecting hosts with Ansible patterns (`web*`, `web:&prod`)
+isn't supported; put them in `args` as `--limit` instead.
+
 ## Keyboard shortcuts
 
 | Action | Shortcut |
@@ -80,6 +119,7 @@ re-runs a past command in check or live mode or restores its selections.
 | New window | ⌘N |
 | Open folder | ⌘O |
 | Copy command | ⇧⌘C |
+| Copy link | ⇧⌥⌘C |
 | Run | ⌘R |
 | Run in check mode | ⌥⌘R |
 | Stop / force stop | ⌘. / ⌃C or ⌥⌘. |

@@ -70,4 +70,15 @@ struct WindowRoutingTests {
         #expect(opened() == [folder])
         #expect(requester.directory == other)
     }
+
+    @Test func holdsALinkUntilItsFolderLoads() {
+        let (app, opened) = makeApp()
+        let link = DeepLink(location: .path(folder.path), playbook: "site.yml")
+
+        app.open(folder, applying: link)
+
+        #expect(opened() == [folder])
+        #expect(app.takeLink(for: URL(fileURLWithPath: "/tmp/ant-farm-tests/site/")) == link)
+        #expect(app.takeLink(for: folder) == nil)
+    }
 }

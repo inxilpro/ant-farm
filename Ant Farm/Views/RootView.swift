@@ -53,7 +53,7 @@ struct RootView: View {
             guard directory == nil else { return }
             if let url = app.folderToRestore() {
                 directory = url
-            } else if app.recentDirectories.isEmpty && app.sessions.count == 1 {
+            } else if app.recentDirectories.isEmpty && app.sessions.count == 1 && !app.isChoosingFolder {
                 // First launch: go straight to the folder picker.
                 app.chooseDirectory(for: session)
             }

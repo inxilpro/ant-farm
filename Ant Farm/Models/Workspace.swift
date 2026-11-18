@@ -254,6 +254,83 @@ final class Workspace {
         mode = command.mode
     }
 
+    // MARK: Links
+
+    /// Makes the selections a link describes. Returns what in it doesn't apply to this folder.
+    func apply(_ link: DeepLink) async -> [String] {
+        var problems: [String] = []
+
+        restoring = true
+        suppressLoads = true
+        if let wanted = link.inventory {
+            if let source = inventories.first(where: { $0.paths.map(DeepLink.normalize) == wanted }) {
+                selectedInventoryID = source.id
+            } else {
+                problems.append("There’s no inventory “\(wanted.joined(separator: ", "))” in this folder.")
+            }
+        }
+        if let wanted = link.playbook {
+            if let playbook = playbooks.first(where: { DeepLink.normalize($0.path) == wanted }) {
+                selectedPlaybookPath = playbook.path
+            } else {
+                problems.append("There’s no playbook “\(wanted)” in this folder.")
+            }
+        }
+        limit = Selection()
+        tagSelection = Selection()
+        extraArguments = link.extraArguments
+        mode = link.mode
+        restoring = false
+        suppressLoads = false
+
+        // Hosts and tags can only be checked against the inventory and playbook just chosen.
+        await loadInventoryContents()
+        await loadTags()
+
+        let hostNames = Set(contents.hosts + contents.groups.map(\.name))
+        var hosts = Selection(limitPatterns: link.limit.filter { $0 != "all" })
+        if inventoryError == nil {
+            let missing = (hosts.included + hosts.excluded).filter { !hostNames.contains($0) }
+            if !missing.isEmpty {
+                problems.append("Not in the inventory, so left out: \(missing.joined(separator: ", ")).")
+            }
+            hosts.keep(only: hostNames)
+        }
+        var tags = Selection(included: link.tags, excluded: link.skipTags)
+        if tagsError == nil {
+            let missing = (tags.included + tags.excluded).filter { !self.tags.contains($0) }
+            if !missing.isEmpty {
+                problems.append("Not tags in the playbook, so left out: \(missing.joined(separator: ", ")).")
+            }
+            tags.keep(only: Set(self.tags))
+        }
+        limit = hosts
+        tagSelection = tags
+        save()
+        schedulePlan()
+        return problems
+    }
+
+    /// A link that opens this folder with the current selections, on any Mac with a clone of its repository.
+    var link: DeepLink {
+        let location: DeepLink.Location
+        if let repository = GitRepository(containing: directory), let remote = repository.preferredRemote {
+            location = .repository(GitRemote.shortName(remote), folder: repository.relativePath(of: directory))
+        } else {
+            location = .path(directory.path.abbreviatingHome)
+        }
+        return DeepLink(
+            location: location,
+            inventory: selectedInventory.flatMap { $0.isDefault ? nil : $0.paths },
+            playbook: selectedPlaybookPath,
+            limit: limit.limitPatterns,
+            tags: tagSelection.included,
+            skipTags: tagSelection.excluded,
+            mode: mode,
+            extraArguments: extraArguments
+        )
+    }
+
     // MARK: Undo
 
     /// Changes the host and tag selections so Edit > Undo can put them back.

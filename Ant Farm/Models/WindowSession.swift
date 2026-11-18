@@ -88,6 +88,25 @@ final class WindowSession {
         self.workspace = workspace
         app?.noteOpened(directory)
         await workspace.reload()
+        applyPendingLink()
+    }
+
+    /// Makes the selections of a link that opened this window's folder, once the folder has loaded.
+    func applyPendingLink() {
+        guard let workspace, !workspace.isDiscovering, let link = app?.takeLink(for: workspace.directory) else { return }
+        bringToFront()
+        Task {
+            let problems = await workspace.apply(link)
+            guard !problems.isEmpty else { return }
+            let alert = NSAlert()
+            alert.messageText = "Some of the link doesn’t apply to “\(workspace.name)”."
+            alert.informativeText = problems.joined(separator: "\n")
+            if let window {
+                _ = await alert.beginSheetModal(for: window)
+            } else {
+                alert.runModal()
+            }
+        }
     }
 
     private func showMissingFolder(_ directory: URL) {
@@ -108,6 +127,7 @@ final class WindowSession {
     func reload() async {
         await app?.locateTools()
         await workspace?.reload()
+        applyPendingLink()
     }
 
     /// Stops any run and forgets its report.

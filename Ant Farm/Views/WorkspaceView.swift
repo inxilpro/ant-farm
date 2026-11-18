@@ -222,7 +222,14 @@ func copyCommand(_ argv: [String]) {
     copyLines([ShellQuoting.format(argv)])
 }
 
-extension URL {
+/// Puts a link on the pasteboard as a URL, so apps that take links paste it as one, and as text.
+func copyLink(_ url: URL) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.writeObjects([url as NSURL])
+    NSPasteboard.general.setString(url.absoluteString, forType: .string)
+}
+
+nonisolated extension URL {
     /// One spelling per folder, with or without a trailing slash or `..`, so windows can be matched to folders.
     var folderURL: URL {
         URL(fileURLWithPath: standardizedFileURL.path, isDirectory: true)

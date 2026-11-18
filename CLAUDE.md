@@ -17,12 +17,14 @@ and follows that CLI's discovery rules and history file format.
   results, selections, and the run plan for one folder), `AnsibleCommand`
   (argv building and parsing), `Selection` (include/exclude), `RunPlan`
   (parses `--list-hosts --list-tasks`), `RunReport` (builds a run's plays,
-  tasks, and host results from events).
+  tasks, and host results from events), `DeepLink` (parses and builds
+  `antfarm://open` links and finds the folder they mean).
 - `Ant Farm/Services`: `Discovery` (inventories, playbooks, tags),
   `AnsibleTools` and `LoginShell` (find Ansible through the login shell's
   PATH), `ProcessRunner`, `RunHistory`, `UpdaterController` (Sparkle),
   `RunMonitor` (sets up the callback plugin and reads its events),
-  `RunNotifier` (the run-finished notification).
+  `RunNotifier` (the run-finished notification), `GitRepository` (a folder's
+  repository root and remotes, read from `.git/config` without running git).
 - `Ant Farm/Callback/antfarm.py`: the callback plugin added to every run. It
   writes JSON lines to `$ANTFARM_EVENTS`. Standard library only, and it must
   work on old and new ansible-core (2.19 renamed `_result`/`_host`/`_task`).

@@ -22,6 +22,12 @@ final class AppState {
     @ObservationIgnored private var restoredLastFolder = false
     /// A folder Finder or the Dock asked to open before `start()` finished.
     @ObservationIgnored private var pendingOpen: URL?
+    /// `antfarm://` links that arrived before `start()` finished.
+    @ObservationIgnored private var pendingLinkURLs: [URL] = []
+    /// Links waiting for their folder's window to finish loading, by folder.
+    @ObservationIgnored private var pendingLinks: [URL: DeepLink] = [:]
+    /// Set while an open panel is up, so a launch doesn't show a second one.
+    @ObservationIgnored private(set) var isChoosingFolder = false
     /// Opens a new window for a folder. Set by `RootView`.
     @ObservationIgnored var openWindow: ((URL) -> Void)?
     /// Set once the app is quitting, when windows go away without the user closing them.
@@ -63,6 +69,9 @@ final class AppState {
                     restoredLastFolder = true
                     open(url)
                 }
+                let links = pendingLinkURLs
+                pendingLinkURLs = []
+                links.forEach(openLink)
             }
         }
         await startTask?.value
@@ -70,20 +79,84 @@ final class AppState {
 
     /// The folder to reopen in the first empty window of a launch, when the system restored none.
     func folderToRestore() -> URL? {
-        guard !restoredLastFolder, pendingOpen == nil, !sessions.contains(where: { $0.directory != nil }) else { return nil }
+        guard !restoredLastFolder, pendingOpen == nil, pendingLinkURLs.isEmpty, !sessions.contains(where: { $0.directory != nil }) else { return nil }
         restoredLastFolder = true
         guard let path = AppDefaults.store.string(forKey: SettingsKey.lastDirectory),
               FileManager.default.fileExists(atPath: path) else { return nil }
         return URL(fileURLWithPath: path)
     }
 
-    /// Opens a folder dropped on the Dock icon, chosen with Open With, or picked from the Dock's recent items.
+    /// Opens a folder dropped on the Dock icon, chosen with Open With, or picked from the Dock's
+    /// recent items, or an `antfarm://` link.
     func openFromSystem(_ url: URL) {
+        let isLink = DeepLink.handles(url)
         guard started else {
-            pendingOpen = url
+            if isLink {
+                pendingLinkURLs.append(url)
+            } else {
+                pendingOpen = url
+            }
             return
         }
-        open(url)
+        if isLink {
+            openLink(url)
+        } else {
+            open(url)
+        }
+    }
+
+    // MARK: Links
+
+    /// Opens the folder an `antfarm://` link names and makes its selections there.
+    func openLink(_ url: URL) {
+        let link: DeepLink
+        do {
+            link = try DeepLink(url: url)
+        } catch {
+            showAlert("Ant Farm can’t open this link.", error.localizedDescription)
+            return
+        }
+        // Folders in open windows come first, so a link goes to the clone already on screen.
+        let candidates = sessions.compactMap(\.directory) + recentDirectories
+        if let folder = link.folders(among: candidates).first {
+            open(folder, applying: link)
+            return
+        }
+        switch link.location {
+        case let .repository(repo, folder):
+            chooseDirectory(message: "Choose your copy of \(repo) to open the link.") { [weak self] chosen in
+                guard let self else { return }
+                if let folder = link.folders(among: [chosen]).first {
+                    open(folder, applying: link)
+                } else {
+                    let inside = folder.map { " with a “\($0)” folder" } ?? ""
+                    showAlert("“\(chosen.lastPathComponent)” isn’t a copy of \(repo)\(inside).",
+                              "Choose a folder in a git repository whose remote is \(repo).")
+                }
+            }
+        case let .path(path):
+            showAlert("The folder “\(path)” can’t be found.", "The link opens a folder at that path on this Mac.")
+        }
+    }
+
+    /// Opens a folder and makes a link's selections once its window has loaded it.
+    func open(_ folder: URL, applying link: DeepLink) {
+        let folder = folder.folderURL
+        pendingLinks[folder] = link
+        open(folder)
+        sessions.first { $0.directory == folder }?.applyPendingLink()
+    }
+
+    /// The link waiting for a folder, if there is one. Each link is handed out once.
+    func takeLink(for folder: URL) -> DeepLink? {
+        pendingLinks.removeValue(forKey: folder.folderURL)
+    }
+
+    private func showAlert(_ message: String, _ information: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = information
+        alert.runModal()
     }
 
     /// Shows a folder: in the window that already has it, else in an empty window, else in a new one.
@@ -147,18 +220,26 @@ final class AppState {
 
     /// Shows an open panel for a folder, as a sheet on the requesting window when there is one.
     func chooseDirectory(for session: WindowSession? = nil) {
+        chooseDirectory(for: session, message: "Choose a folder that contains your Ansible inventory and playbooks.") { [weak self] url in
+            self?.open(url, preferring: session)
+        }
+    }
+
+    private func chooseDirectory(for session: WindowSession? = nil, message: String, completion: @escaping (URL) -> Void) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.prompt = "Open"
-        panel.message = "Choose a folder that contains your Ansible inventory and playbooks."
+        panel.message = message
         if let current = session?.directory ?? recentDirectories.first {
             panel.directoryURL = current
         }
+        isChoosingFolder = true
         let handler = { [weak self] (response: NSApplication.ModalResponse) in
+            self?.isChoosingFolder = false
             guard response == .OK, let url = panel.url else { return }
-            self?.open(url, preferring: session)
+            completion(url)
         }
         if let window = session?.window {
             panel.beginSheetModal(for: window, completionHandler: handler)

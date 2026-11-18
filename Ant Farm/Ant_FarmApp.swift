@@ -119,6 +119,11 @@ private struct AppCommands: Commands {
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .disabled(session?.displayedCommand == nil)
+            Button("Copy Link") {
+                if let url = workspace?.link.url { copyLink(url) }
+            }
+            .keyboardShortcut("c", modifiers: [.command, .option, .shift])
+            .disabled(workspace?.selectedPlaybook == nil)
         }
 
         CommandGroup(after: .textEditing) {
