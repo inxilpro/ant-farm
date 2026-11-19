@@ -136,12 +136,24 @@ nonisolated enum Discovery {
     /// Loads groups and hosts with `ansible-inventory --list`.
     @concurrent
     static func contents(of source: InventorySource, in directory: URL, tools: AnsibleTools) async throws -> InventoryContents {
-        let args = source.paths.flatMap { ["-i", $0] } + ["--list"]
+        // ansible-core 2.22 masks secret values in what it prints, even inside numbers, which can
+        // break the JSON. What it writes with --output is left alone.
+        let output = FileManager.default.temporaryDirectory.appending(path: "ant-farm-inventory-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: output) }
+        let args = source.paths.flatMap { ["-i", $0] } + ["--list", "--output", output.path]
         let result = try await ProcessRunner.run(tools.inventory, arguments: args, in: directory, environment: tools.environment)
         guard result.status == 0 else {
             throw AntFarmError.message(failure("ansible-inventory", result))
         }
-        let contents = try InventoryContents.parse(result.stdout)
+        let data = (try? Data(contentsOf: output)).flatMap { $0.isEmpty ? nil : $0 } ?? result.stdout
+        let contents: InventoryContents
+        do {
+            contents = try InventoryContents.parse(data)
+        } catch {
+            let warnings = result.errorOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw AntFarmError.message("ansible-inventory printed something other than JSON."
+                + (warnings.isEmpty ? "" : "\n\n" + warnings))
+        }
         if contents.hosts.isEmpty {
             throw AntFarmError.message("No hosts found in \(source.isDefault ? "the default inventory" : source.label).")
         }

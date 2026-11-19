@@ -1,6 +1,11 @@
 #!/bin/sh
-# A stand-in for `ansible-inventory --list`, matching the fixture's hosts file.
-cat <<'JSON'
+# A stand-in for `ansible-inventory --list --output FILE`, matching the fixture's hosts file.
+output=/dev/stdout
+while [ $# -gt 0 ]; do
+  [ "$1" = "--output" ] && output="$2"
+  shift
+done
+cat > "$output" <<'JSON'
 {
   "_meta": { "hostvars": {} },
   "all": { "children": ["ungrouped", "web", "db"] },
