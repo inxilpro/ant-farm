@@ -41,7 +41,7 @@ struct RunReportTests {
 
         let play = try #require(report.plays.first)
         #expect(play.name == "Web servers")
-        #expect(play.tasks.map(\.id) == ["t1", "t2"])
+        #expect(play.tasks.map(\.uuid) == ["t1", "t2"])
 
         let install = play.tasks[0]
         #expect(install.role == "web")
@@ -113,6 +113,34 @@ struct RunReportTests {
         """)
         #expect(report.tasks.count == 1)
         #expect(report.tasks.first?.results.map(\.host) == ["web1", "web2"])
+    }
+
+    @Test func keepsEachSerialBatchSeparate() {
+        let report = Self.report("""
+        {"event": "play_start", "play": "p1", "name": "App", "pattern": "www"}
+        {"event": "task_start", "task": "t1", "name": "Install"}
+        {"event": "ok", "task": "t1", "host": "www1", "changed": true}
+        {"event": "play_start", "play": "p1", "name": "App", "pattern": "www"}
+        {"event": "task_start", "task": "t1", "name": "Install"}
+        {"event": "ok", "task": "t1", "host": "www2"}
+        """)
+        #expect(report.plays.count == 2)
+        #expect(Set(report.plays.map(\.id)).count == 2)
+        #expect(Set(report.tasks.map(\.id)).count == 2)
+        #expect(report.plays.map { $0.tasks.flatMap(\.results).map(\.host) } == [["www1"], ["www2"]])
+        #expect(report.plays.map { $0.tasks.first?.status } == [.changed, .ok])
+        #expect(report.plays.map { report.batchTitle(for: $0) } == ["Batch 1", "Batch 2"])
+    }
+
+    @Test func namesBatchesOnlyForSerialPlays() throws {
+        var report = Self.report("""
+        {"event": "play_start", "play": "p1", "name": "Setup", "pattern": "all"}
+        {"event": "play_start", "play": "p2", "name": "App", "pattern": "www"}
+        {"event": "play_start", "play": "p2", "name": "App", "pattern": "www"}
+        {"event": "play_start", "play": "p2", "name": "App", "pattern": "www"}
+        """)
+        report.apply(try #require(RunEvent.parse(#"{"event": "stats", "hosts": {}}"#)))
+        #expect(report.plays.map { report.batchTitle(for: $0) } == [nil, "Batch 1 of 3", "Batch 2 of 3", "Batch 3 of 3"])
     }
 
     /// The tests run inside the app, so this checks the plugin ships as a resource.

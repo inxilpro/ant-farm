@@ -76,6 +76,11 @@ struct RunReportView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(play.name.isEmpty ? "Play" : play.name)
                     .font(.headline)
+                if let batch = report.batchTitle(for: play) {
+                    Text(batch)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text("hosts: \(play.pattern)")
                     .font(.system(.caption, design: .monospaced))

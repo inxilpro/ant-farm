@@ -106,7 +106,10 @@ nonisolated struct RunReport: Equatable, Sendable {
     }
 
     struct TaskReport: Equatable, Identifiable, Sendable {
+        /// Unique within the report; a task runs once per `serial` batch, under the same `uuid`.
         var id: String
+        /// Ansible's id for the task, which events refer to.
+        var uuid: String
         var name: String
         var role: String?
         var action: String?
@@ -138,7 +141,11 @@ nonisolated struct RunReport: Equatable, Sendable {
     }
 
     struct PlayReport: Equatable, Identifiable, Sendable {
+        /// Unique within the report; a play with `serial` starts once per batch, under the same `uuid`.
         var id: String
+        var uuid: String
+        /// Which `serial` batch this is, counting from 1.
+        var batch = 1
         var name: String
         var pattern: String
         var tasks: [TaskReport] = []
@@ -179,6 +186,19 @@ nonisolated struct RunReport: Equatable, Sendable {
     /// The task that started most recently.
     var currentTask: TaskReport? {
         plays.last?.tasks.last
+    }
+
+    /// How many batches of this play have started.
+    func batchCount(of play: PlayReport) -> Int {
+        plays.count(where: { $0.uuid == play.uuid })
+    }
+
+    /// "Batch 2 of 3", or nil for a play that ran in one batch. The total is only
+    /// known once the run has finished, since Ansible doesn't announce it.
+    func batchTitle(for play: PlayReport) -> String? {
+        let count = batchCount(of: play)
+        guard count > 1 else { return nil }
+        return stats == nil ? "Batch \(play.batch)" : "Batch \(play.batch) of \(count)"
     }
 
     /// Per-host totals: Ansible's recap when the run has finished, otherwise counted so far.
@@ -228,25 +248,31 @@ nonisolated struct RunReport: Equatable, Sendable {
             playbook = event.playbook
 
         case "play_start":
+            let uuid = event.play ?? UUID().uuidString
+            let batch = plays.count(where: { $0.uuid == uuid }) + 1
             plays.append(PlayReport(
-                id: event.play ?? UUID().uuidString,
+                id: batch == 1 ? uuid : "\(uuid)#\(batch)",
+                uuid: uuid,
+                batch: batch,
                 name: event.name ?? "",
                 pattern: event.pattern ?? ""
             ))
 
         case "task_start":
-            guard let id = event.task else { return }
+            guard let uuid = event.task else { return }
             if plays.isEmpty {
-                plays.append(PlayReport(id: UUID().uuidString, name: "", pattern: ""))
+                let id = UUID().uuidString
+                plays.append(PlayReport(id: id, uuid: id, name: "", pattern: ""))
             }
             let play = plays.count - 1
             // Tasks in an include can start more than once; keep one row per task.
-            if let index = plays[play].tasks.lastIndex(where: { $0.id == id }) {
+            if let index = plays[play].tasks.lastIndex(where: { $0.uuid == uuid }) {
                 let task = plays[play].tasks.remove(at: index)
                 plays[play].tasks.append(task)
             } else {
                 plays[play].tasks.append(TaskReport(
-                    id: id,
+                    id: "\(plays[play].id)/\(uuid)",
+                    uuid: uuid,
                     name: event.name ?? event.action ?? "",
                     role: event.role,
                     action: event.action,
@@ -314,11 +340,11 @@ nonisolated struct RunReport: Equatable, Sendable {
         }
     }
 
-    /// Finds a task by id, searching the latest play first.
-    private mutating func update(task id: String?, _ change: (inout TaskReport) -> Void) {
-        guard let id else { return }
+    /// Finds a task by Ansible's id, searching the latest play (and so the current batch) first.
+    private mutating func update(task uuid: String?, _ change: (inout TaskReport) -> Void) {
+        guard let uuid else { return }
         for play in plays.indices.reversed() {
-            if let index = plays[play].tasks.lastIndex(where: { $0.id == id }) {
+            if let index = plays[play].tasks.lastIndex(where: { $0.uuid == uuid }) {
                 change(&plays[play].tasks[index])
                 return
             }
